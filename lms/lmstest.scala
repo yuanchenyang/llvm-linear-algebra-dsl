@@ -52,34 +52,50 @@ class Matrix {
 
 
 object Main {
-  def main(args: Array[String]): Unit = {
+  def makeArray(w: Int, h: Int): Array[Double] = {
+    val a = new Array[Double](w * h + 2)
+    a(0) = w
+    a(1) = h
+    a
+  }
+
+  def getIndex(a: Array[Double], x: Int, y: Int) = {
+    val w = a(0).toInt
+    val h = a(1).toInt
+    w * y + x + 2
+  }
+
 
   def process(inputFileName: String, outputFileName: String) {
-    val a =
-      Array(Array(-1, 0, 1),
-        Array(-2, 0, 2),
-        Array(-1, 0, 1))
-    
-    val snippet = new DslDriver[Array[Array[Int]], Array[Array[Int]]] {
-      def snippet(input: Rep[Array[Array[Int]]]) = {
-        def specialized(filterIn: Array[Array[Int]], input: Rep[Array[Array[Int]]]) = {
-          val h = input.length
-          val w = input(0).length
+    val a = Array(Array(0.11111, 0.11111, 0.11111),
+                  Array(0.11111, 0.11111, 0.11111),
+                  Array(0.11111, 0.11111, 0.11111))
+      //  Array(Array(-1, 0, 1),
+      //        Array(-2, 0, 2),
+      //        Array(-1, 0, 1))
+
+    val snippet = new DslDriver[Array[Double], Array[Double]] {
+      def snippet(input: Rep[Array[Double]]) = {
+        def specialized(filterIn: Array[Array[Double]], input: Rep[Array[Double]]) = {
+          val w = input(0).toInt
+          val h = input(1).toInt
           // Assuming filter is symmetrical
           val padding = (filterIn.length - 1) / 2
           val filter = staticData(filterIn)
-          var output = NewArray[Array[Int]](h)
-    
-          for (i <- (padding until h - padding):Rep[Range]) {
-            var row = NewArray[Int](w)
-            for (j <- (padding until w - padding):Rep[Range]) {
-              for (ii <- (-padding to padding):Range) {
-        	for (jj <- (-padding to padding):Range) {
-        	  row(j) = row(j) + input(i + unit(ii)).apply(j + unit(jj)) * filter(ii + padding).apply(jj + padding)
+          var output = NewArray[Double](input.length)
+          output(0) = w
+          output(1) = h
+
+          for (y <- (padding until h - padding):Rep[Range]) {
+            for (x <- (padding until w - padding):Rep[Range]) {
+              for (xx <- (-padding to padding):Range) {
+        	for (yy <- (-padding to padding):Range) {
+                  val inputIndex = 2 + w * (y + yy) + x + xx
+                  val outputIndex = 2 + w * y + x
+        	  output(outputIndex) = output(outputIndex) + input(inputIndex) * filter(yy + padding).apply(xx + padding)
         	}
               }
             }
-            output(i) = row
           }
           output
         }
@@ -91,31 +107,32 @@ object Main {
     val width = bi.getWidth
     val height = bi.getHeight
 
-    val rm = Array.ofDim[Int](bi.getHeight, bi.getWidth)
-    val gm = Array.ofDim[Int](bi.getHeight, bi.getWidth)
-    val bm = Array.ofDim[Int](bi.getHeight, bi.getWidth)
+    val rm = makeArray(height, width)
+    val gm = makeArray(height, width)
+    val bm = makeArray(height, width)
 
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
         val RGB = bi.getRGB(y, x)
-        val r = (((RGB>>16) & 255) + 128) % 255
-        val g = (((RGB>>8)  & 255) + 128) % 255
-        val b = (((RGB)     & 255) + 128) % 255
-        rm(x)(y) = r
-        gm(x)(y) = g
-        bm(x)(y) = b
+        val r = ((RGB>>16) & 255)
+        val g = ((RGB>>8)  & 255)
+        val b = ((RGB)     & 255)
+        rm(getIndex(rm, x, y)) = r
+        gm(getIndex(rm, x, y)) = g
+        bm(getIndex(rm, x, y)) = b
       }
     }
-    val rmm = snippet.apply(rm)
-    val gmm = snippet.apply(gm)
-    val bmm = snippet.apply(bm)
+    println(snippet.code)
+    val rmm = snippet.eval(rm)
+    val gmm = snippet.eval(gm)
+    val bmm = snippet.eval(bm)
     val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
-        val r = rmm(x)(y)
-        val g = gmm(x)(y)
-        val b = bmm(x)(y)
+        val r = rmm(getIndex(rmm, x, y)).toInt
+        val g = gmm(getIndex(rmm, x, y)).toInt
+        val b = bmm(getIndex(rmm, x, y)).toInt
         val rgb = (r << 16) | (g << 8) | b
         img.setRGB(y, x, rgb)
       }
