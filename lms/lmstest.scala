@@ -53,9 +53,9 @@ object Image {
     val width = bi.getWidth
     val height = bi.getHeight
 
-    val rm = new Matrix(bi.getHeight, bi.getWidth)
-    val gm = new Matrix(bi.getHeight, bi.getWidth)
-    val bm = new Matrix(bi.getHeight, bi.getWidth)
+    val rm = Array.ofDim[Int](bi.getHeight, bi.getWidth)
+    val gm = Array.ofDim[Int](bi.getHeight, bi.getWidth)
+    val bm = Array.ofDim[Int](bi.getHeight, bi.getWidth)
 
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
@@ -63,18 +63,18 @@ object Image {
         val r = (((RGB>>16) & 255) + 128) % 255
         val g = (((RGB>>8)  & 255) + 128) % 255
         val b = (((RGB)     & 255) + 128) % 255
-        rm.setItem(x, y, r)
-        gm.setItem(x, y, g)
-        bm.setItem(x, y, b)
+        rm(x)(y) = r
+        gm(x)(y) = g
+        bm(x)(y) = b
       }
     }
     val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
-        val r = rm.getItem(x, y)
-        val g = gm.getItem(x, y)
-        val b = bm.getItem(x, y)
+        val r = rm(x)(y)
+        val g = gm(x)(y)
+        val b = bm(x)(y)
         val rgb = (r << 16) | (g << 8) | b
         img.setRGB(y, x, rgb)
       }
