@@ -9,6 +9,7 @@ import scala.util.Random
 import scala.util.Random
 import scala.virtualization.lms.common._
 import Array._
+import scala.math._
 
 trait Ackermann extends Dsl {
   def a(m: Int): Rep[Int => Int] = fun { (n: Rep[Int]) =>
@@ -67,12 +68,15 @@ object Main {
 
 
   def process(inputFileName: String, outputFileName: String) {
-    val a = Array(Array(0.11111, 0.11111, 0.11111),
-                  Array(0.11111, 0.11111, 0.11111),
-                  Array(0.11111, 0.11111, 0.11111))
-      //  Array(Array(-1, 0, 1),
-      //        Array(-2, 0, 2),
-      //        Array(-1, 0, 1))
+    // val a = Array(Array(0.11111, 0.11111, 0.11111),
+    //               Array(0.11111, 0.11111, 0.11111),
+    //               Array(0.11111, 0.11111, 0.11111))
+     val a = Array(Array(-1.0, 0.0, 1.0),
+            Array(-2.0, 0.0, 2.0),
+            Array(-1.0, 0.0, 1.0))
+     val b = Array(Array(1.0, 2.0, 1.0),
+            Array(0.0, 0.0, 0.0),
+            Array(-1.0, -2.0, -1.0))
 
     val snippet = new DslDriver[Array[Double], Array[Double]] {
       def snippet(input: Rep[Array[Double]]) = {
@@ -100,7 +104,24 @@ object Main {
           output
         }
         val v1 = specialized(a, input)
-        v1
+        val v2 = specialized(b, input)
+        def gradient(v1: Rep[Array[Double]], v2: Rep[Array[Double]]) = {
+            val w = v1(0).toInt
+            var output = NewArray[Double](input.length)
+            output(0) = w
+            output(1) = v1(1)
+            for (y <- (0 until v1(1).toInt)) {
+              for (x <- (0 until w)) {
+                val idx = 2 + y * w + x
+                val v1_elt = v1(idx)
+                val v2_elt = v2(idx)
+                output(idx) = v1_elt * v1_elt + v2_elt * v2_elt
+              }
+            }
+            output
+        }
+	val output = gradient(v1, v2)
+	output
       }
     }
     val bi = ImageIO.read(new File(inputFileName))
@@ -123,16 +144,16 @@ object Main {
       }
     }
     println(snippet.code)
-    val rmm = snippet.eval(rm)
+    val rmm  = snippet.eval(rm)
     val gmm = snippet.eval(gm)
     val bmm = snippet.eval(bm)
     val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
-        val r = rmm(getIndex(rmm, x, y)).toInt
-        val g = gmm(getIndex(rmm, x, y)).toInt
-        val b = bmm(getIndex(rmm, x, y)).toInt
+        val r = sqrt(rmm(getIndex(rmm, x, y))).toInt
+        val g = sqrt(gmm(getIndex(rmm, x, y))).toInt
+        val b = sqrt(bmm(getIndex(rmm, x, y))).toInt
         val rgb = (r << 16) | (g << 8) | b
         img.setRGB(y, x, rgb)
       }
