@@ -53,40 +53,38 @@ class Matrix {
 
 
 object Main {
-  def makeArray(w: Int, h: Int): Array[Double] = {
-    val a = new Array[Double](w * h + 2)
+  def makeArray(w: Int, h: Int): Array[Int] = {
+    val a = new Array[Int](w * h + 2)
     a(0) = w
     a(1) = h
     a
   }
 
-  def getIndex(a: Array[Double], x: Int, y: Int) = {
-    val w = a(0).toInt
-    val h = a(1).toInt
+  def getIndex(a: Array[Int], x: Int, y: Int) = {
+    val w = a(0) //.toInt
+    val h = a(1) //.toInt
     w * y + x + 2
   }
 
 
   def process(inputFileName: String, outputFileName: String) {
-    // val a = Array(Array(0.11111, 0.11111, 0.11111),
-    //               Array(0.11111, 0.11111, 0.11111),
-    //               Array(0.11111, 0.11111, 0.11111))
-     val a = Array(Array(-1.0, 0.0, 1.0),
-            Array(-2.0, 0.0, 2.0),
-            Array(-1.0, 0.0, 1.0))
-     val b = Array(Array(1.0, 2.0, 1.0),
-            Array(0.0, 0.0, 0.0),
-            Array(-1.0, -2.0, -1.0))
 
-    val snippet = new DslDriver[Array[Double], Array[Double]] {
-      def snippet(input: Rep[Array[Double]]) = {
-        def specialized(filterIn: Array[Array[Double]], input: Rep[Array[Double]]) = {
-          val w = input(0).toInt
-          val h = input(1).toInt
+    val a = Array(Array(-1, 0, 1),
+                  Array(-2, 0, 2),
+                  Array(-1, 0, 1))
+    val b = Array(Array(1, 2, 1),
+                  Array(0, 0, 0),
+                  Array(-1, -2, -1))
+
+    val snippet = new DslDriver[Array[Int], Array[Int]] {
+      def snippet(input: Rep[Array[Int]]) = {
+        def specialized(filterIn: Array[Array[Int]], input: Rep[Array[Int]]) = {
+          val w = input(0) //.toInt
+          val h = input(1) //.toInt
           // Assuming filter is symmetrical
           val padding = (filterIn.length - 1) / 2
           val filter = staticData(filterIn)
-          var output = NewArray[Double](input.length)
+          var output = NewArray[Int](input.length)
           output(0) = w
           output(1) = h
 
@@ -105,12 +103,12 @@ object Main {
         }
         val v1 = specialized(a, input)
         val v2 = specialized(b, input)
-        def gradient(v1: Rep[Array[Double]], v2: Rep[Array[Double]]) = {
-            val w = v1(0).toInt
-            var output = NewArray[Double](input.length)
+        def gradient(v1: Rep[Array[Int]], v2: Rep[Array[Int]]) = {
+            val w = v1(0)//.toInt
+            var output = NewArray[Int](input.length)
             output(0) = w
             output(1) = v1(1)
-            for (y <- (0 until v1(1).toInt)) {
+            for (y <- (0 until v1(1)/*.toInt*/)) {
               for (x <- (0 until w)) {
                 val idx = 2 + y * w + x
                 val v1_elt = v1(idx)
@@ -151,9 +149,9 @@ object Main {
 
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
-        val r = sqrt(rmm(getIndex(rmm, x, y))).toInt
-        val g = sqrt(gmm(getIndex(rmm, x, y))).toInt
-        val b = sqrt(bmm(getIndex(rmm, x, y))).toInt
+        val r = sqrt(rmm(getIndex(rmm, x, y)).toDouble).toInt
+        val g = sqrt(gmm(getIndex(rmm, x, y)).toDouble).toInt
+        val b = sqrt(bmm(getIndex(rmm, x, y)).toDouble).toInt
         val rgb = (r << 16) | (g << 8) | b
         img.setRGB(y, x, rgb)
       }
