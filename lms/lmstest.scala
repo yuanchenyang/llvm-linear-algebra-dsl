@@ -26,32 +26,6 @@ trait Mul extends Dsl {
   }
 }
 
-class Matrix {
-  var width: Int = 0
-  var height: Int = 0
-  var data: Array[Int] = new Array[Int](0)
-
-  def this(width: Int, height: Int) = {
-    this()
-    this.width = width
-    this.height = height
-    this.data = new Array[Int](width * height)
-  }
-
-  def getIndex(x: Int, y: Int): Int = {
-    this.width * y + x
-  }
-
-  def getItem(x: Int, y: Int): Int = {
-    this.data(this.getIndex(x, y))
-  }
-
-  def setItem(x: Int, y: Int, item: Int) = {
-    this.data(this.getIndex(x, y)) = item
-  }
-}
-
-
 object Main {
   def makeArray(w: Int, h: Int): Array[Int] = {
     val a = new Array[Int](w * h + 2)
@@ -91,11 +65,11 @@ object Main {
           for (y <- (padding until h - padding):Rep[Range]) {
             for (x <- (padding until w - padding):Rep[Range]) {
               for (xx <- (-padding to padding):Range) {
-        	for (yy <- (-padding to padding):Range) {
+                for (yy <- (-padding to padding):Range) {
                   val inputIndex = 2 + w * (y + yy) + x + xx
                   val outputIndex = 2 + w * y + x
-        	  output(outputIndex) = output(outputIndex) + input(inputIndex) * filter(yy + padding).apply(xx + padding)
-        	}
+                  output(outputIndex) = output(outputIndex) + input(inputIndex) * filter(yy + padding).apply(xx + padding)
+                }
               }
             }
           }
@@ -104,22 +78,22 @@ object Main {
         val v1 = specialized(a, input)
         val v2 = specialized(b, input)
         def gradient(v1: Rep[Array[Int]], v2: Rep[Array[Int]]) = {
-            val w = v1(0)//.toInt
-            var output = NewArray[Int](input.length)
-            output(0) = w
-            output(1) = v1(1)
-            for (y <- (0 until v1(1)/*.toInt*/)) {
-              for (x <- (0 until w)) {
-                val idx = 2 + y * w + x
-                val v1_elt = v1(idx)
-                val v2_elt = v2(idx)
-                output(idx) = v1_elt * v1_elt + v2_elt * v2_elt
-              }
+          val w = v1(0)//.toInt
+          var output = NewArray[Int](input.length)
+          output(0) = w
+          output(1) = v1(1)
+          for (y <- (0 until v1(1)/*.toInt*/)) {
+            for (x <- (0 until w)) {
+              val idx = 2 + y * w + x
+              val v1_elt = v1(idx)
+              val v2_elt = v2(idx)
+              output(idx) = v1_elt * v1_elt + v2_elt * v2_elt
             }
-            output
+          }
+          output
         }
-	val output = gradient(v1, v2)
-	output
+        val output = gradient(v1, v2)
+        output
       }
     }
     val bi = ImageIO.read(new File(inputFileName))
@@ -141,8 +115,8 @@ object Main {
         bm(getIndex(rm, x, y)) = b
       }
     }
-    println(snippet.code)
-    val rmm  = snippet.eval(rm)
+
+    val rmm = snippet.eval(rm)
     val gmm = snippet.eval(gm)
     val bmm = snippet.eval(bm)
     val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
