@@ -68,7 +68,8 @@ object Main {
 
 
   def process(inputFileName: String, outputFileName: String) {
-
+    // The two kernels used for convolution. Together, they provide edge
+    // detection.
     val a = Array(Array(-1, 0, 1),
                   Array(-2, 0, 2),
                   Array(-1, 0, 1))
@@ -76,9 +77,15 @@ object Main {
                   Array(0, 0, 0),
                   Array(-1, -2, -1))
 
+    // A new instance of the DslDriver class, which partially evaluates the
+    // snippet method.
     val snippet = new DslDriver[Array[Int], Array[Int]] {
       def snippet(input: Rep[Array[Int]]) = {
         def specialized(filterIn: Array[Array[Int]], input: Rep[Array[Int]]) = {
+          // filterIn : the convolution kernel, which is partially evaluated
+          // input    : The input matrix. Since we can only have one input
+          //            argument, we pass in the matrix as an array, with its
+          //            dimensions as the first two elements.
           val w = input(0) //.toInt
           val h = input(1) //.toInt
           // Assuming filter is symmetrical
@@ -88,10 +95,14 @@ object Main {
           output(0) = w
           output(1) = h
 
+          // Main convolution loop. For each pixel in the input image, take the
+          // surrounding size(kernel) pixels, multiply each by the corresponding
+          // kernel element and sum them together.
           for (y <- (padding until h - padding):Rep[Range]) {
             for (x <- (padding until w - padding):Rep[Range]) {
               for (xx <- (-padding to padding):Range) {
         	for (yy <- (-padding to padding):Range) {
+                  // Hackish indexing
                   val inputIndex = 2 + w * (y + yy) + x + xx
                   val outputIndex = 2 + w * y + x
         	  output(outputIndex) = output(outputIndex) + input(inputIndex) * filter(yy + padding).apply(xx + padding)
@@ -101,8 +112,11 @@ object Main {
           }
           output
         }
+        // Specialize the convolution to each kernel
         val v1 = specialized(a, input)
         val v2 = specialized(b, input)
+        // Combine the two resultant matrices together:
+        // output[i, j] = sqrt(v1[i, j]^2 + v2[i, j]^2)
         def gradient(v1: Rep[Array[Int]], v2: Rep[Array[Int]]) = {
             val w = v1(0)//.toInt
             var output = NewArray[Int](input.length)
@@ -122,6 +136,8 @@ object Main {
 	output
       }
     }
+
+    // IO plumbing
     val bi = ImageIO.read(new File(inputFileName))
     val width = bi.getWidth
     val height = bi.getHeight
@@ -141,12 +157,15 @@ object Main {
         bm(getIndex(rm, x, y)) = b
       }
     }
+
+    // Evaluate with specialized code
     println(snippet.code)
     val rmm  = snippet.eval(rm)
     val gmm = snippet.eval(gm)
     val bmm = snippet.eval(bm)
-    val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
+    // IO plumbing
+    val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
     for ( y <- 0 until width) {
       for ( x <- 0 until height) {
         val r = sqrt(rmm(getIndex(rmm, x, y)).toDouble).toInt
