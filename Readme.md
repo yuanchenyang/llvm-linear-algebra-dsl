@@ -23,3 +23,46 @@ Design Document: https://docs.google.com/document/d/1jxXGokp4xRlaZ8CKpWOpg-vOyd2
 
     $ cd lms
     $ sbt run
+
+
+## racket-llvm (OSX)
+
+    $ cd cs164fa14-final-project
+    $ git submodule update --init --recursive
+    $ brew install llvm35 --with-clang
+    $ raco pkg install srfi  # answer a to have it grab all dependencies automatically
+
+    $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 raco setup racket-llvm
+    $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 racket racket-llvm/examples/hello_world.rkt
+    ; ModuleID = 'gcd-module'
+
+    define i32 @gcd(i32 %x, i32 %y) {
+    test-zero:
+      %cond = icmp eq i32 %x, 0
+      br i1 %cond, label %zero, label %test-less
+
+    test-less:                                        ; preds = %test-zero
+      %cond1 = icmp ult i32 %x, %y
+      br i1 %cond1, label %less, label %greater
+
+    zero:                                             ; preds = %test-zero
+      ret i32 %y
+
+    less:                                             ; preds = %test-less
+      %z = sub i32 %y, %x
+      %ans = call i32 @gcd(i32 %x, i32 %z)
+      ret i32 %ans
+
+    greater:                                          ; preds = %test-less
+      %z2 = sub i32 %x, %y
+      %ans3 = call i32 @gcd(i32 %y, i32 %z2)
+      ret i32 %ans3
+    }
+
+    define i32 @mul-add(i32 %x, i32 %y, i32 %z) {
+    entry:
+      %a = mul i32 %x, %y
+      %b = add i32 %z, %a
+      ret i32 %b
+    }
+    4
