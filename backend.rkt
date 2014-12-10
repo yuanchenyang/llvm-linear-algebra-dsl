@@ -27,7 +27,7 @@
 	(cons (cons param x)
 	      (process-params func (cdr params) (+ index 1))))))
 
-(define (do-math program)
+(define (do-math program args)
   (begin
     (define context (LLVMContextCreate))
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
@@ -45,9 +45,19 @@
       (LLVMPositionBuilderAtEnd builder entry)
       (compile-ast-to-llvm (func-decl-body program) builder env)
       (LLVMDumpModule module)
+      (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
+       (when err
+         (display err) (exit 1)))
+      (define arg1 (LLVMCreateGenericValueOfInt int-type (car args) #t))
+      (define arg2 (LLVMCreateGenericValueOfInt int-type (car (cdr args)) #t))
+      (LLVMLinkInJIT)
+      (define ee (LLVMCreateExecutionEngineForModule module))
+      
+      (define output (LLVMRunFunction ee fun (list arg1 arg2)))
+      (LLVMGenericValueToInt output #t)
     )))
 
-(do-math add-func)
+(do-math add-func (list 1 2))
 
 ;; (define tree
 ;;   (func-decl
