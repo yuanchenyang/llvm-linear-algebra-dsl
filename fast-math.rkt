@@ -45,6 +45,8 @@ Special
 |#
 (require math/array)
 (require math/matrix)
+(require "nodes.rkt")
+(require "utils.rkt")
 
 
 (struct symbol-ref (id)  #:transparent)
@@ -80,9 +82,10 @@ Special
   ;; (Number a) => (Matrix a) -> (Matrix a) -> (Matrix a)
   ;; (Number a) => a -> a -> a
   (cond [(and (number? a) (number? b))
-         ()
+         (add (num a) (num b))]
+        [(and (matrix? a) (matrix? b))
+         (for (symbol
          ]
-        [(and (matrix? a) (matrix? b))]
 
 
   (if (contains-matrix (list a b))
