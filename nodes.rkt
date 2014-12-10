@@ -1,3 +1,12 @@
+#lang racket
+
+(provide for
+	 assign
+	 add
+	 array-ref
+	 num
+	 symbol)
+
 (struct for (loop-var init end incr))
 (struct assign (target value))
 (struct add (op1 op2))
