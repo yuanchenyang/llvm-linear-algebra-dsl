@@ -6,7 +6,7 @@
 (require "utils.rkt")
 
 (define add-func
-  (func-decl (symbol "add") (list (symbol "x") (symbol "y"))
+  (func-decl "add" (list (symbol "x") (symbol "y"))
 	     (return (add (symbol "x") (symbol "y")))))
 
 
@@ -34,7 +34,7 @@
     (define int-type (LLVMInt32TypeInContext context))
     (define param-types (map (lambda (a) int-type) (func-decl-params program)))
     (define fun-type (LLVMFunctionType int-type param-types false))
-    (define fun (LLVMAddFunction module "func-decl-name program" fun-type))
+    (define fun (LLVMAddFunction module (func-decl-name program) fun-type))
     (let ()
       (define env
 	(make-hash
