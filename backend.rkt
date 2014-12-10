@@ -11,7 +11,9 @@
 (define j (symbol "j"))
 
 (define add-func
-  (return (add (symbol "x") (symbol "y"))))
+  (func-decl (symbol "add") (list (symbol "x") (symbol "y"))
+	     (return (add (symbol "x") (symbol "y")))))
+
 
 (define (compile-ast-to-llvm node builder env)
   (cond [(return? node) (LLVMBuildRet builder (compile-ast-to-llvm
@@ -22,27 +24,31 @@
 	[(symbol? node) (hash-ref env (symbol-name node))]
 	[else (error "Unsupport node")]))
 
+(define (process-params func params index)
+  (if (null? params) '()
+      (let ([x (LLVMGetParam func index)]
+	    [param (symbol-name (car params))])
+	(LLVMSetValueName x param)
+	(cons (cons param x)
+	      (process-params func (cdr params) (+ index 1))))))
+
 (define (do-math program)
   (begin
     (define context (LLVMContextCreate))
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
     (define int-type (LLVMInt32TypeInContext context))
-    (define fun-type (LLVMFunctionType int-type (list int-type int-type) false))
-    (define add-fun (LLVMAddFunction module "add" fun-type))
+    (define param-types (map (lambda (a) int-type) (func-decl-params program)))
+    (define fun-type (LLVMFunctionType int-type param-types false))
+    (define fun (LLVMAddFunction module "func-decl-name program" fun-type))
     (let ()
-      (define x (LLVMGetParam add-fun 0))
-      (define y (LLVMGetParam add-fun 1))
-      (LLVMSetValueName x "x")
-      (LLVMSetValueName y "y")
       (define env
 	(make-hash
-	 (list (cons "x" x)
-               (cons "y" x))))
-      (define entry (LLVMAppendBasicBlockInContext context add-fun "entry"))
+	 (process-params fun (func-decl-params program) 0)))
+      (define entry (LLVMAppendBasicBlockInContext context fun "entry"))
       (define builder (LLVMCreateBuilderInContext context))
 
       (LLVMPositionBuilderAtEnd builder entry)
-      (compile-ast-to-llvm program builder env)
+      (compile-ast-to-llvm (func-decl-body program) builder env)
       (LLVMDumpModule module)
     )))
 

@@ -9,6 +9,6 @@
 (struct array-ref  (arr index)                   #:transparent)
 (struct num        (value)                       #:transparent)
 (struct symbol     (name)                        #:transparent)
-(struct func-decl  (name args body)              #:transparent)
+(struct func-decl  (name params body)            #:transparent)
 (struct return     (target)                      #:transparent)
 (struct block      (stmts return)                #:transparent)
