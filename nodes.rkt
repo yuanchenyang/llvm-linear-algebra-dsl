@@ -7,7 +7,7 @@
 	 num
 	 symbol)
 
-(struct for (loop-var init end incr))
+(struct for (loop-var init end incr body))
 (struct assign (target value))
 (struct add (op1 op2))
 (struct array-ref (arr index))
