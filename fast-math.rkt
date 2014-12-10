@@ -67,6 +67,15 @@ Special
    [contents #:auto #:mutable])
   #:transparent)
 
+(define (mat-block? val)
+  (or (matrix? val) (block? val)))
+
+(define (get-mat-block? val)
+  (assert mat-block? val)
+  (if (matrix? val)
+      val
+      (block-return val)))
+
 (define (make-constant-matrix lst)
   (letrec ([rows (length lst)]
            [cols (length (car lst))]
@@ -75,8 +84,6 @@ Special
     (set-matrix-contents!  mat (apply append lst))
     mat))
 
-(make-constant-matrix '((1 2 3) (4 5 6)))
-
 (define-syntax-rule (+ a b)
   ;; Adds two values together, the following types are supported:
   ;; (Number a) => (Matrix a) -> (Matrix a) -> (Matrix a)
@@ -84,18 +91,11 @@ Special
   (cond [(and (number? a) (number? b))
          (add (num a) (num b))]
         [(and (matrix? a) (matrix? b))
-         (for (symbol
-         ]
-
-
-  (if (contains-matrix (list a b))
-      (call (symbol-ref "matrix+")
-	    (list (symbol-ref a) (symbol-ref b)))
-      (call (symbol-ref "+")
-	    (list (symbol-ref a) (symbol-ref b)))))
-
-
-
+         (let ([i (gen-unique-symbol)]
+               [j (gen-unique-symbol)])
+           (for-node (symbol i) (num 0) (num (matrix-rows a)) (num 1)
+             (for-node (symbol j) (num 0) (num (matrix-cols a)) (num 1)
+               (add (
 
 (require rackunit)
 
