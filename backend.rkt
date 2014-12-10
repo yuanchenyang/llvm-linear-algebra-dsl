@@ -3,12 +3,7 @@
 (require "nodes.rkt")
 (require racket/pretty)
 (require racket-llvm/unsafe)
-
-(define a (symbol "a"))
-(define b (symbol "b"))
-(define c (symbol "c"))
-(define i (symbol "i"))
-(define j (symbol "j"))
+(require "utils.rkt")
 
 (define add-func
   (func-decl (symbol "add") (list (symbol "x") (symbol "y"))
@@ -20,7 +15,7 @@
 					       (return-target node) builder env))]
 	[(add? node) (let ([op1 (compile-ast-to-llvm (add-op1 node) builder env)]
 			   [op2 (compile-ast-to-llvm (add-op2 node) builder env)])
-		       (LLVMBuildAdd builder op1 op2 "a"))]
+		       (LLVMBuildAdd builder op1 op2 (gen-unique-symbol)))]
 	[(symbol? node) (hash-ref env (symbol-name node))]
 	[else (error "Unsupport node")]))
 
