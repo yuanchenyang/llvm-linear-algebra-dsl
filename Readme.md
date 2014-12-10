@@ -31,12 +31,11 @@ Design Document: https://docs.google.com/document/d/1jxXGokp4xRlaZ8CKpWOpg-vOyd2
     $ git submodule update --init --recursive
     $ brew install llvm35 --with-clang
     $ raco pkg install srfi  # answer a to have it grab all dependencies automatically
-
+    $ raco link racket-llvm
     $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 raco setup racket-llvm
     $ cd racket-llvm
     $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 racket build.rkt
     $ cd ..
-    $ raco link racket-llvm
     $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 racket racket-llvm/examples/hello_world.rkt
     ; ModuleID = 'gcd-module'
 
