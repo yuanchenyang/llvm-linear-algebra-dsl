@@ -1,54 +1,56 @@
 #lang racket
 #|
-(matrix [[expr ...+] ...+])
+  (matrix [[expr ...+] ...+])
 
 Entrywise Ops
-(+ M N) -> (Matrix Number)
-(- M N) -> (Matrix Number)
-(* M N) -> (Matrix Number)
-(/ M N) -> (Matrix Number)
-  M: (Matrix Number)
-  N: (Matrix Number)
+  (+ M N) -> (Matrix Number)
+  (- M N) -> (Matrix Number)
+  (* M N) -> (Matrix Number)
+  (/ M N) -> (Matrix Number)
+    M: (Matrix Number)
+    N: (Matrix Number)
 
-(+ M N) -> (Matrix Number)
-(- M N) -> (Matrix Number)
-(* M N) -> (Matrix Number)
-(/ M N) -> (Matrix Number)
-  M: (Matrix Number)
-  N: Number
+  (+ M N) -> (Matrix Number)
+  (- M N) -> (Matrix Number)
+  (* M N) -> (Matrix Number)
+  (/ M N) -> (Matrix Number)
+    M: (Matrix Number)
+    N: Number
 
-(+ M N) -> (Matrix Number)
-(- M N) -> (Matrix Number)
-(* M N) -> (Matrix Number)
-(/ M N) -> (Matrix Number)
-  M: Number
-  N: (Matrix Number)
+  (+ M N) -> (Matrix Number)
+  (- M N) -> (Matrix Number)
+  (* M N) -> (Matrix Number)
+  (/ M N) -> (Matrix Number)
+    M: Number
+    N: (Matrix Number)
 
-(+ M N) -> Number
-(- M N) -> Number
-(* M N) -> Number
-(/ M N) -> Number
-  M: Number
-  N: Number
+  (+ M N) -> Number
+  (- M N) -> Number
+  (* M N) -> Number
+  (/ M N) -> Number
+    M: Number
+    N: Number
 
 Special
-(map f M) -> (Matrix Number)
-  f: (Number -> Number)
-  M: (Matrix Number)
-(map f M N ...) -> (Matrix Number)
-  f: (Number Number ... -> Number)
-  M: (Matrix Number)
-  N: (Matrix Number)
+  (map f M) -> (Matrix Number)
+    f: (Number -> Number)
+    M: (Matrix Number)
+  (map f M N ...) -> (Matrix Number)
+    f: (Number Number ... -> Number)
+    M: (Matrix Number)
+    N: (Matrix Number)
 
-(transpose M) -> (Matrix Number)
-  M: (Matrix Number)
+  (transpose M) -> (Matrix Number)
+    M: (Matrix Number)
 |#
 (require math/array)
 (require math/matrix)
+(require "nodes.rkt")
+(require "utils.rkt")
 
 
-(struct symbol-ref (id) #:transparent)
-(struct num-ref (id) #:transparent)
+(struct symbol-ref (id)  #:transparent)
+(struct num-ref (id)     #:transparent)
 (struct call (func args) #:transparent)
 
 (define (contains-matrix args)
@@ -57,25 +59,42 @@ Special
 	(or (and (array? a) (matrix? a))
 	    (contains-matrix (cdr args))))))
 
+;; TODO: add types
+(struct matrix
+  (rows
+   cols
+   [constant? #:auto #:mutable]
+   [contents #:auto #:mutable])
+  #:transparent)
+
+(define (make-constant-matrix lst)
+  (letrec ([rows (length lst)]
+           [cols (length (car lst))]
+           [mat  (matrix rows cols)])
+    (set-matrix-constant?! mat #t)
+    (set-matrix-contents!  mat (apply append lst))
+    mat))
+
+(make-constant-matrix '((1 2 3) (4 5 6)))
+
 (define-syntax-rule (+ a b)
-  ;; TODO: Typechecking (matrix sizes compatible, unsupported types)
-  ;; (+ M N) -> (Matrix Number)
-  ;;   M: (Matrix Number)
-  ;;   N: (Matrix Number)
-  ;; (+ M N) -> (Matrix Number)
-  ;;   M: Number
-  ;;   N: (Matrix Number)
-  ;; (+ M N) -> (Matrix Number)
-  ;;   M: (Matrix Number)
-  ;;   N: Number
-  ;; (+ M N) -> Number
-  ;;   M: Number
-  ;;   N: Number
+  ;; Adds two values together, the following types are supported:
+  ;; (Number a) => (Matrix a) -> (Matrix a) -> (Matrix a)
+  ;; (Number a) => a -> a -> a
+  (cond [(and (number? a) (number? b))
+         (add (num a) (num b))]
+        [(and (matrix? a) (matrix? b))
+         (for (symbol
+         ]
+
+
   (if (contains-matrix (list a b))
       (call (symbol-ref "matrix+")
-	    '((symbol-ref a) (symbol-ref b)))
+	    (list (symbol-ref a) (symbol-ref b)))
       (call (symbol-ref "+")
-	    '((symbol-ref a) (symbol-ref b)))))
+	    (list (symbol-ref a) (symbol-ref b)))))
+
+
 
 
 (require rackunit)
