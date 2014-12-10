@@ -5,10 +5,6 @@
 (require racket-llvm/unsafe)
 (require "utils.rkt")
 
-(define add-func
-  (func-decl "add" (list (symbol "x") (symbol "y"))
-	     (return (add (symbol "x") (symbol "y")))))
-
 
 (define (compile-ast-to-llvm node builder env)
   (cond [(return? node) (LLVMBuildRet builder (compile-ast-to-llvm
@@ -43,8 +39,10 @@
       (define builder (LLVMCreateBuilderInContext context))
 
       (LLVMPositionBuilderAtEnd builder entry)
+
       (compile-ast-to-llvm (func-decl-body program) builder env)
       (LLVMDumpModule module)
+
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
        (when err
          (display err) (exit 1)))
@@ -57,15 +55,14 @@
       (LLVMGenericValueToInt output #t)
     )))
 
-(do-math add-func (list 1 2))
 
-;; (define tree
-;;   (func-decl
-;;    (symbol "matrix-add")
-;;    (list a b c)
-;;    (list
-;;     (for i (num 0) (num 10) (num 1)
-;; 	 (for j (num 0) (num 10) (num 1)
-;; 	      (assign (array-ref c (add (mul i (num 10)) j))
-;; 		      (add (array-ref a (add (mul i (num 10)) j))
-;; 			   (array-ref b (add (mul i (num 10)) j)))))))))
+(require rackunit)
+
+(define add-func
+  (func-decl "add" (list (symbol "x") (symbol "y"))
+	     (return (add (symbol "x") (symbol "y")))))
+
+(test-begin
+   "Test simple add"
+   (check-eq? (do-math add-func (list 5 2)) 7))
+
