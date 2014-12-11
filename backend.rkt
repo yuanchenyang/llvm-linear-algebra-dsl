@@ -151,6 +151,7 @@
 (define a (symbol "a"))
 (define b (symbol "b"))
 (define c (symbol "c"))
+(define d (symbol "d"))
 (define i (symbol "i"))
 (define j (symbol "j"))
 
@@ -178,3 +179,22 @@
    "Test for loop"
    (check-eq? (do-math loop-add (list 10 10)) 1010))
 
+
+(define loop-accum
+  (func-decl
+   "matrix-add"
+   (list a b)
+   (list
+    (assign c a)
+    (for-node i (num 0) (num 10) (num 1)
+	      (list
+	       (assign d (num 0))
+	       (for-node j (num 0) (num 10) (num 1)
+			 (list
+			  (assign d (add d a))
+			  (assign c (add c d))))))
+    (return c))))
+
+(test-begin
+   "Test loop variable"
+   (check-eq? (do-math loop-accum (list 4 8)) 2204))
