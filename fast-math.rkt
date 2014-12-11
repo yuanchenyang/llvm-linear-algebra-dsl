@@ -109,9 +109,9 @@ Special
             [node
              (for-node (symbol i) (num 0) (num rows) (num 1)
                (for-node (symbol j) (num 0) (num cols) (num 1)
-                 (assign (array-ref target index)
-                         (add (array-ref (get-mat-id a) index)
-                              (array-ref (get-mat-id b) index)))))])
+                 (assign (array-reference target index)
+                         (add (array-reference (get-mat-id a) index)
+                              (array-reference (get-mat-id b) index)))))])
            (block (list (get-stmts a) (get-stmts b) node)
                   target))]
         [else (error "Invalid arguments to add!")]))
