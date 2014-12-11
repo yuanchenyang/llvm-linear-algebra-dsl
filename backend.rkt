@@ -28,8 +28,8 @@
     ;; Allocate loop variable
     (define loop-var-name (symbol-name (for-node-loop-var node)))
     (define old-val (hash-ref env loop-var-name '()))
-    ;; (define loop-var (LLVMBuildAlloca builder int-type loop-var-name))
-    ;; (hash-set! env loop-var-name loop-var)
+    (define loop-var (LLVMBuildAlloca builder int-type loop-var-name))
+    (hash-set! env loop-var-name loop-var)
     (compile-ast-to-llvm (assign (for-node-loop-var node) (for-node-init node))
     			 builder env context)
     (LLVMBuildBr builder block)
