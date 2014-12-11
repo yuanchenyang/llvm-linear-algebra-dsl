@@ -5,33 +5,36 @@
 (require racket-llvm/unsafe)
 (require "utils.rkt")
 
+(define context (LLVMContextCreate))
+(define int-type (LLVMInt32TypeInContext context))
 
 (define (builder->function builder)
   (LLVMGetBasicBlockParent (LLVMGetInsertBlock builder)))
 
 
 (define (compile-assign node builder env context)
-  (let ([value (compile-ast-to-llvm (assign-value node) builder env context)]
-	[target (compile-ast-to-llvm (assign-target node) builder env context)])
+  (begin
+    (define value (compile-ast-to-llvm (assign-value node) builder env context))
+    (define target-name (symbol-name (assign-target node)))
+    (hash-set! env target-name (LLVMBuildAlloca builder int-type target-name))
+    (define target (compile-ast-to-llvm (assign-target node) builder env context))
     (LLVMBuildStore builder value target)))
 
 (define (compile-for-node node builder env context)
   (begin
     ;; Create a new block
     (define block (LLVMAppendBasicBlockInContext
-		   context (builder->function builder) "loop"))
-    ;; Hardcoding int-type
-    (define int-type (LLVMInt32TypeInContext context))
+		   context (builder->function builder) (string-append "loop" (gen-unique-symbol))))
     ;; Allocate loop variable
     (define loop-var-name (symbol-name (for-node-loop-var node)))
-    (define loop-var (LLVMBuildAlloca builder int-type loop-var-name))
-    (define old-val (hash-ref env loop-var '()))
-    (hash-set! env loop-var-name loop-var)
+    (define old-val (hash-ref env loop-var-name '()))
+    ;; (define loop-var (LLVMBuildAlloca builder int-type loop-var-name))
+    ;; (hash-set! env loop-var-name loop-var)
     (compile-ast-to-llvm (assign (for-node-loop-var node) (for-node-init node))
     			 builder env context)
     (LLVMBuildBr builder block)
     (LLVMPositionBuilderAtEnd builder block)
-    (compile-ast-to-llvm (for-node-body node) builder env context)
+    (compile-ast-to-llvm (car (for-node-body node)) builder env context)
     (hash-remove! env loop-var-name)
     ))
 
@@ -47,7 +50,6 @@
 
 (define (compile-num node context)
   (begin
-    (define int-type (LLVMInt32TypeInContext context))
     (LLVMConstInt int-type (num-value node) #t)))
 
 (define (compile-array-ref node builder env context)
@@ -73,9 +75,7 @@
 
 (define (do-math program args)
   (begin
-    (define context (LLVMContextCreate))
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
-    (define int-type (LLVMInt32TypeInContext context))
     (define param-types (map (lambda (a) int-type) (func-decl-params program)))
     (define fun-type (LLVMFunctionType int-type param-types false))
     (define fun (LLVMAddFunction module (func-decl-name program) fun-type))
@@ -88,7 +88,9 @@
 
       (LLVMPositionBuilderAtEnd builder entry)
 
-      (compile-ast-to-llvm (func-decl-body program) builder env context)
+      (map (lambda (statement)
+	     (compile-ast-to-llvm statement builder env context))
+	   (func-decl-body program))
       (LLVMDumpModule module)
 
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
@@ -108,7 +110,7 @@
 
 (define add-func
   (func-decl "add" (list (symbol "x") (symbol "y"))
-	     (return (add (symbol "x") (symbol "y")))))
+  	  (list (return (add (symbol "x") (symbol "y"))))))
 
 (define a (symbol "a"))
 (define b (symbol "b"))
@@ -116,40 +118,19 @@
 (define i (symbol "i"))
 (define j (symbol "j"))
 
-(define array-add
+(define loop-add
   (func-decl
    "matrix-add"
-   (list a b c)
-   (for-node i (num 0) (num 10) (num 1)
-	     (for-node j (num 0) (num 10) (num 1)
-		       (assign (array-reference c (add (mul i (num 10)) j))
-			       (add (array-reference a (add (mul i (num 10)) j))
-				    (array-reference b (add (mul i (num 10)) j))))))))
+   (list a c)
+   (list
+    (for-node i (num 0) (num 10) (num 1)
+	      (list (for-node j (num 0) (num 10) (num 1)
+			      (list (add c a))))))))
 
 (require ffi/unsafe
 	 racket/flonum)
 
-(define A
-  (let ([v (make-flvector 100)])
-    (begin0 v
-      (for ([x (in-range 100)])
-	(flvector-set! v x 1.0)))))
-
-(define B
-  (let ([v (make-flvector 100)])
-    (begin0 v
-      (for ([x (in-range 100)])
-	(flvector-set! v x 1.0)))))
-
-(define C
-  (let ([v (make-flvector 100)])
-    (begin0 v
-      (for ([x (in-range 100)])
-	(flvector-set! v x 0.0)))))
-
-(LLVMCreateGenericValueOfPointer (flvector->cpointer A))
-
-(do-math array-add (list A B C))
+(do-math loop-add (list 10 10))
 
 (test-begin
    "Test simple add"
