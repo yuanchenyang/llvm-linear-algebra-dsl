@@ -7,7 +7,7 @@
   uniq)
 
 (define (gen-unique-symbol)
-  (string-append "#u" (number->string (gen-unique-num))))
+  (string-append "u" (number->string (gen-unique-num))))
 
 (provide gen-unique-num
          gen-unique-symbol)
