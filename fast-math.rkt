@@ -69,14 +69,31 @@ Special
    [constant? #:auto #:mutable])
   #:transparent)
 
-(define (make-matrix rows cols)
-  (matrix rows cols (malloc (_array _int rows cols))))
+(define (make-matrix id rows cols)
+  (matrix id rows cols (malloc (_array _int rows cols))))
 
-(define (ref-matrix mat row col)
+(define (matrix-ref mat row col)
   (ptr-ref (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col)))
 
-(define (set-matrix! mat row col val)
+(define (matrix-set! mat row col val)
   (ptr-set! (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col) val))
+
+(define (matrix-load! mat vals)
+  (define i 0)
+  (for ([row vals])
+    (define j 0)
+    (for ([val row])
+      (matrix-set! mat i j val)
+      (set! j (+ j 1)))
+    (set! i (+ i 1))))
+
+(define (matrix-display mat)
+    (for ([i (matrix-rows mat)])
+      (display "(")
+      (for ([j (matrix-cols mat)])
+        (display (matrix-ref mat i j))
+        (if (not (= j (- (matrix-cols mat) 1))) (display ", ") #f))
+      (displayln ")")))
 
 ;; TODO: add type-checking
 (define (mat-block? val)
@@ -97,9 +114,9 @@ Special
 (define (make-constant-matrix lst)
   (letrec ([rows (length lst)]
            [cols (length (car lst))]
-           [mat  (matrix rows cols)])
+           [mat  (make-matrix "const" rows cols)])
     (set-matrix-constant?! mat #t)
-    (set-matrix-contents!  mat (apply append lst))
+    (matrix-load! mat lst)
     mat))
 
 (define (+. a b)
@@ -127,8 +144,8 @@ Special
         [else (error "Invalid arguments to add!")]))
 
 (pretty-print
- (let ([a (matrix "a" 3 4)]
-       [b (matrix "b" 3 4)])
+ (let ([a (make-matrix "a" 3 4)]
+       [b (make-matrix "b" 3 4)])
    (+. a (+. b a))))
 
 
