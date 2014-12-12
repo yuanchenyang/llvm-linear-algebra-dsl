@@ -4,7 +4,7 @@
 (require racket/pretty)
 (require racket-llvm/unsafe)
 (require "utils.rkt")
-(require "fast-math.rkt")
+(require "frontend.rkt")
 (provide (all-defined-out))
 
 (define context (LLVMContextCreate))

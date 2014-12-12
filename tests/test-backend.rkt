@@ -1,5 +1,9 @@
+#lang racket
+
 (require rackunit)
-(require "../backend.rkt")
+(require "../fast-math/frontend.rkt")
+(require "../fast-math/backend.rkt")
+(require "../fast-math/nodes.rkt")
 
 (define add-func
   (func-decl "add" (list (param "x" int) (param "y" int))
