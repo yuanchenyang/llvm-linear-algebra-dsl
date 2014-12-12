@@ -4,6 +4,7 @@
 (require racket/pretty)
 (require racket-llvm/unsafe)
 (require "utils.rkt")
+; (require "fast-math.rkt")
 
 (define context (LLVMContextCreate))
 (define int-type (LLVMInt32TypeInContext context))
@@ -26,39 +27,47 @@
           (hash-set! env target-name alloca)
           (LLVMBuildStore builder value alloca)))))
 
+(define (compile-start-val node builder env context alloca) 
+  (let ([start-val (compile-ast-to-llvm node builder env context)]) 
+    (LLVMBuildStore builder start-val alloca)))
+
+(define (compile-update-loop-var incr builder env context alloca loop-var-name)
+  (let* ([step-val (compile-ast-to-llvm incr builder env context)]
+         [curr-var (LLVMBuildLoad builder alloca loop-var-name)]
+         [next-var (LLVMBuildAdd builder curr-var step-val "next-var")])
+    (LLVMBuildStore builder next-var alloca)))
+
 (define (compile-for-node node builder env context)
-  (begin
-    (define init-var (gen-unique-symbol))
-    (define loop-var-name (symbol-name (for-node-loop-var node)))
-    (define alloca (create-entry-block-alloca (builder->function builder) loop-var-name))
-    (define start-val (compile-ast-to-llvm (for-node-init node) builder env context))
-    (LLVMBuildStore builder start-val alloca)
-    ;; Create a new block
-    (define loop-block-name (string-append "loop" (number->string (gen-unique-num))))
-    (define loop-block (LLVMAppendBasicBlockInContext
+  (let* ([loop-var-name (symbol-name (for-node-loop-var node))]
+         [alloca (create-entry-block-alloca (builder->function builder) 
+                                            loop-var-name)]
+         [loop-block-name (string-append "loop" (number->string (gen-unique-num)))]
+         [loop-block (LLVMAppendBasicBlockInContext
                         context
                         (builder->function builder)
-                        loop-block-name))
-    (define insert-block (LLVMGetInsertBlock builder))
+                        loop-block-name)]
+         [insert-block (LLVMGetInsertBlock builder)]
+         [old-val (hash-ref env loop-var-name null)]
+         )
+    (compile-start-val (for-node-init node) builder env context alloca)
+    ;; Create a new block
     (LLVMPositionBuilderAtEnd builder loop-block)
-    (define old-val (hash-ref env loop-var-name null))
     (hash-set! env loop-var-name alloca)
     (map (lambda (node) (compile-ast-to-llvm node builder env context))
          (for-node-body node))
-    (define step-val (compile-ast-to-llvm (for-node-incr node) builder env context))
-    (define curr-var (LLVMBuildLoad builder alloca loop-var-name))
-    (define next-var (LLVMBuildAdd builder curr-var step-val "next-var"))
-    (LLVMBuildStore builder next-var alloca)
-    (define end (compile-ast-to-llvm (lt (symbol loop-var-name)
-                                         (for-node-end node)) builder env context))
-    (define after-block (LLVMAppendBasicBlockInContext
+    (compile-update-loop-var (for-node-incr node) builder env context alloca 
+                             loop-var-name)
+    (let* ([end (compile-ast-to-llvm 
+                  (lt (symbol loop-var-name) 
+                      (for-node-end node)) builder env context)]
+           [after-block (LLVMAppendBasicBlockInContext
                         context
                         (builder->function builder)
-                        (string-append "after" loop-block-name)))
-    (LLVMBuildCondBr builder end loop-block after-block)
-    (LLVMPositionBuilderAtEnd builder insert-block)
-    (LLVMBuildBr builder loop-block)
-    (LLVMPositionBuilderAtEnd builder after-block)
+                        (string-append "after" loop-block-name))])
+      (LLVMBuildCondBr builder end loop-block after-block)
+      (LLVMPositionBuilderAtEnd builder insert-block)
+      (LLVMBuildBr builder loop-block)
+      (LLVMPositionBuilderAtEnd builder after-block))
     (if (not (empty? old-val))
         (hash-set! env loop-var-name old-val)
         '())))
@@ -140,7 +149,6 @@
                               (LLVMCreateGenericValueOfInt int-type arg #t)) args))
       (LLVMLinkInJIT)
       (define ee (LLVMCreateExecutionEngineForModule module))
-      
       (define output (LLVMRunFunction ee fun int-args))
       (LLVMGenericValueToInt output #t)
     )))
@@ -209,13 +217,18 @@
    (list (param "a" int-ptr) (param "b" int-ptr) (param "c" int-ptr))
    (list
      (for-node (symbol "u1") (num 0) (num 3) (num 1)
-      (for-node (symbol "u2") (num 0) (num 4) (num 1)
-       (assign
-        (array-reference  (symbol "c") (add (symbol "u2") (mul 3 (symbol "u1"))))
-        (add
-         (array-reference (symbol "b") (add (symbol "u2") (mul 3 (symbol "u1"))))
-         (array-reference (symbol "a") (add (symbol "u2") (mul 3 (symbol "u1")))))))))))
+       (list
+         (for-node (symbol "u2") (num 0) (num 4) (num 1)
+          (list
+            (assign
+             (array-reference  (symbol "c") (add (symbol "u2") (mul 3 (symbol "u1"))))
+             (add
+              (array-reference (symbol "b") (add (symbol "u2") (mul 3 (symbol "u1"))))
+              (array-reference (symbol "a") (add (symbol "u2") (mul 3 (symbol "u1")))))))))))))
 
 
+; (define A (make-matrix 3 4))
+; (define B (make-matrix 3 4))
+; (define C (make-matrix 3 4))
 
-(do-math matrix-add (list A B C))
+; (do-math matrix-add (list A B C))
