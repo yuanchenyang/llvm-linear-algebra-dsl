@@ -63,9 +63,12 @@ Special
 (struct matrix
   (rows
    cols
-   [constant? #:auto #:mutable]
-   [contents #:auto #:mutable])
+   contents
+   [constant? #:auto #:mutable])
   #:transparent)
+
+(define (make-matrix rows cols)
+  (matrix rows cols (malloc (_array _int rows cols))))
 
 (define (mat-block? val)
   (or (matrix? val) (block? val)))
