@@ -53,21 +53,17 @@
     (op (replacer op1) (replacer op2))))
 
 (define (replace-symbol to-replace new)
-  (letrec ([replacer (lambda (tree)
-		      (cond [(for-node? tree) (replace-symbol-for-node tree replacer)]
-			    [(symbol? tree) (if (equal? (symbol-name tree) to-replace)
-						(symbol new)
-						(begin
-						  (display tree)
-						  (display to-replace)
-						  tree))]
-			    [(assign? tree) (replace-symbol-assign tree replacer)]
-			    [(array-reference? tree) (replace-symbol-array-reference tree replacer)]
-			    [(add? tree) (replace-symbol-binop tree add replacer)]
-			    [(mul? tree) (replace-symbol-binop tree mul replacer)]
-			    [(num? tree) tree]
-			    [else (error tree)]))])
-    replacer))
+  (define (replacer tree)
+    (cond [(for-node? tree) (replace-symbol-for-node tree replacer)]
+	  [(symbol? tree) (if (equal? (symbol-name tree) to-replace)
+			      (symbol new) tree)]
+	  [(assign? tree) (replace-symbol-assign tree replacer)]
+	  [(array-reference? tree) (replace-symbol-array-reference tree replacer)]
+	  [(add? tree) (replace-symbol-binop tree add replacer)]
+	  [(mul? tree) (replace-symbol-binop tree mul replacer)]
+	  [(num? tree) tree]
+	  [else (error tree)]))
+  replacer)
 
 (define (fuse loop1 loop2)
   (match-let* ([(for-node loopvar start end incr body) loop1]
