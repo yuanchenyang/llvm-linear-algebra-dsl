@@ -100,13 +100,11 @@ Special
   (or (matrix? val) (block? val)))
 
 (define (get-mat-id val)
-  ;(assert mat-block? val)
   (if (matrix? val)
       (matrix-id val)
       (block-return val)))
 
 (define (get-stmts val)
-  ;(assert mat-block? val)
   (if (matrix? val)
       '()
       (block-stmts val)))
@@ -150,10 +148,3 @@ Special
 
 
 (require rackunit)
-
-;; (let ([a (matrix [[1 2 3] [1 2 3]])]
-;;       [b (matrix [[1 2 3] [1 2 3]])])
-;;   (test-begin
-;;    "Test matrix-matrix plus"
-;;    (let ([a-plus-b (+ a b)])
-;;      (check-pred call? a-plus-b))))
