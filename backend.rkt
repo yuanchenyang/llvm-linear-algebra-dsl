@@ -4,7 +4,7 @@
 (require racket/pretty)
 (require racket-llvm/unsafe)
 (require "utils.rkt")
-; (require "fast-math.rkt")
+(require "fast-math.rkt")
 
 (define context (LLVMContextCreate))
 (define int-type (LLVMInt32TypeInContext context))
@@ -18,14 +18,27 @@
     (LLVMPositionBuilderAtEnd tmp-builder (LLVMGetEntryBasicBlock func))
     (LLVMBuildAlloca tmp-builder int-type varname)))
 
-(define (compile-assign node builder env context)
+(define (compile-assign-symbol node builder env context value)
   (let* ([target-name (symbol-name (assign-target node))]
-         [value (compile-ast-to-llvm (assign-value node) builder env context)]
          [var (hash-ref! env target-name '())])
     (if (not (empty? var)) (LLVMBuildStore builder value var)
         (let ([alloca (LLVMBuildAlloca builder int-type target-name)])
           (hash-set! env target-name alloca)
           (LLVMBuildStore builder value alloca)))))
+
+(define (compile-assign-array-ref node builder env context value)
+  (match-let* ([(array-reference arr index) (assign-target node)]
+               [var (hash-ref! env arr '())]
+               [index (compile-ast-to-llvm index builder env context)]
+               [gep (LLVMBuildGEP builder var (list index) (gen-unique-symbol))])
+             (if (null? var) (error "Assigning to undeclared array")
+               (LLVMBuildStore builder value gep))))
+
+(define (compile-assign node builder env context)
+  (let ([value (compile-ast-to-llvm (assign-value node) builder env context)])
+    (if (symbol? (assign-target node))
+      (compile-assign-symbol node builder env context value)
+      (compile-assign-array-ref node builder env context value))))
 
 (define (compile-start-val node builder env context alloca) 
   (let ([start-val (compile-ast-to-llvm node builder env context)]) 
@@ -42,10 +55,8 @@
          [alloca (create-entry-block-alloca (builder->function builder) 
                                             loop-var-name)]
          [loop-block-name (string-append "loop" (number->string (gen-unique-num)))]
-         [loop-block (LLVMAppendBasicBlockInContext
-                        context
-                        (builder->function builder)
-                        loop-block-name)]
+         [loop-block (LLVMAppendBasicBlockInContext context
+                        (builder->function builder) loop-block-name)]
          [insert-block (LLVMGetInsertBlock builder)]
          [old-val (hash-ref env loop-var-name null)]
          )
@@ -92,7 +103,11 @@
   (LLVMConstInt int-type (num-value node) #f))
 
 (define (compile-array-ref node builder env context)
-  (error "compile-array-ref not implemented"))
+  (match-let ([(array-reference arr index) node]
+              [name (gen-unique-symbol)])
+    (define ptr (LLVMBuildGEP builder (hash-ref! env arr '())
+                  (list (compile-ast-to-llvm index builder env context)) name))
+    (LLVMBuildLoad builder ptr name)))
 
 (define (compile-symbol node builder env context)
    (LLVMBuildLoad builder (hash-ref env (symbol-name node)) (symbol-name node)))
@@ -100,6 +115,7 @@
 (define (compile-ast-to-llvm node builder env context)
   (cond [(return? node)          (compile-return    node builder env context)]
         [(add? node)             (compile-binop     node builder env context LLVMBuildAdd)]
+        [(mul? node)             (compile-binop     node builder env context LLVMBuildMul)]
         [(lt? node)              (compile-pred      node builder env context 'LLVMIntULT)]
         [(for-node? node)        (compile-for-node  node builder env context)]
         [(assign? node)          (compile-assign    node builder env context)]
@@ -108,24 +124,29 @@
         [(symbol? node)          (compile-symbol    node builder env context)]
         [else (error "Unsupported node")]))
 
-(define (process-params builder func params index)
-  (if (null? params) '()
-      (let ([x (LLVMGetParam func index)]
-            [param (symbol-name (car params))]
-            [alloca (create-entry-block-alloca func (gen-unique-symbol))])
-        (LLVMSetValueName x param)
-        (LLVMBuildStore builder x alloca)
-        (cons (cons param alloca)
-              (process-params builder func (cdr params) (+ index 1))))))
+(define (process-int builder func param index)
+  (let ([x (LLVMGetParam func index)] 
+        [alloca (create-entry-block-alloca func (gen-unique-symbol))]
+        [name (param-name param)])
+    (LLVMSetValueName x name)
+    (LLVMBuildStore builder x alloca)
+    (cons name alloca)))
 
-; (define (get-type param)
-;   (if )
-;   )
+(define (process-matrix builder func param index)
+  (let* ([x (LLVMGetParam func index)]
+         [name (param-name param)])
+    (LLVMSetValueName x name)
+    (cons name x)))
+
+(define (get-type arg)
+  (cond [(matrix? arg) (LLVMPointerType int-type 0)]
+        [(integer? arg) int-type]
+        [else (error "Unsupported arg type")]))
 
 (define (do-math program args)
   (begin
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
-    (define param-types (map (lambda (a) int-type) (func-decl-params program)))
+    (define param-types (map get-type args))
     (define fun-type (LLVMFunctionType int-type param-types false))
     (define fun (LLVMAddFunction module (func-decl-name program) fun-type))
     (let ()
@@ -133,9 +154,13 @@
       (define builder (LLVMCreateBuilderInContext context))
 
       (LLVMPositionBuilderAtEnd builder entry)
-      (define env
-        (make-hash
-         (process-params builder fun (func-decl-params program) 0)))
+      (define env (make-hash
+        (for/list ([arg args]
+                   [index (in-range (length args))]
+                   [param (func-decl-params program)]) 
+                  (cond [(matrix? arg) (process-matrix builder fun param index)] 
+                        [(integer? arg) (process-int builder fun param index)]
+                        [else (error "Unsupport argument type")]))))
 
       (map (lambda (statement)
              (compile-ast-to-llvm statement builder env context))
@@ -145,11 +170,15 @@
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
        (when err
          (display err) (exit 1)))
-      (define int-args (map (lambda (arg)
-                              (LLVMCreateGenericValueOfInt int-type arg #t)) args))
+      (define (convert-arg arg) 
+        (cond [(matrix? arg) (LLVMCreateGenericValueOfPointer (matrix-contents arg))]
+              [(integer? arg) (LLVMCreateGenericValueOfInt int-type arg #t)]
+              [else (error "Unsupport argument type")]))
+
+      (define processed-args (map convert-arg args))
       (LLVMLinkInJIT)
       (define ee (LLVMCreateExecutionEngineForModule module))
-      (define output (LLVMRunFunction ee fun int-args))
+      (define output (LLVMRunFunction ee fun processed-args))
       (LLVMGenericValueToInt output #t)
     )))
 
@@ -157,7 +186,7 @@
 (require rackunit)
 
 (define add-func
-  (func-decl "add" (list (symbol "x") (symbol "y"))
+  (func-decl "add" (list (param "x" int) (param "y" int))
           (list (return (add (symbol "x") (symbol "y"))))))
 
 (define a (symbol "a"))
@@ -169,8 +198,8 @@
 
 (define loop-add
   (func-decl
-   "matrix-add"
-   (list a b)
+   "loop-add"
+   (list (param "a" int) (param "b" int))
    (list
     (assign c a)
     (for-node i (num 0) (num 10) (num 1)
@@ -194,8 +223,8 @@
 
 (define loop-accum
   (func-decl
-   "matrix-add"
-   (list a b)
+   "loop-accum"
+   (list (param "a" int) (param "b" int))
    (list
     (assign c a)
     (for-node i (num 0) (num 10) (num 1)
@@ -213,22 +242,29 @@
 
 (define matrix-add
   (func-decl
-   "matrix-add"
+   "elementwise-matrix-add"
    (list (param "a" int-ptr) (param "b" int-ptr) (param "c" int-ptr))
    (list
-     (for-node (symbol "u1") (num 0) (num 3) (num 1)
+     (for-node (symbol "u1") (num 0) (num 2) (num 1)
        (list
-         (for-node (symbol "u2") (num 0) (num 4) (num 1)
+         (for-node (symbol "u2") (num 0) (num 2) (num 1)
           (list
             (assign
-             (array-reference  (symbol "c") (add (symbol "u2") (mul 3 (symbol "u1"))))
+             (array-reference  "c" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
              (add
-              (array-reference (symbol "b") (add (symbol "u2") (mul 3 (symbol "u1"))))
-              (array-reference (symbol "a") (add (symbol "u2") (mul 3 (symbol "u1")))))))))))))
+              (array-reference "b" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+              (array-reference "a" (add (symbol "u2") (mul (num 2) (symbol "u1"))))))))))
+     (return (symbol "c")))))
 
 
-; (define A (make-matrix 3 4))
-; (define B (make-matrix 3 4))
-; (define C (make-matrix 3 4))
+(define A (make-constant-matrix (list (list 1 3) (list 4 7))))
+(define B (make-constant-matrix (list (list 2 2) (list 5 6))))
+(define C (make-constant-matrix (list (list 0 0) (list 0 0))))
 
-; (do-math matrix-add (list A B C))
+(test-begin
+   "Test matrix-add"
+   (do-math matrix-add (list A B C))
+   (check-eq? (matrix-ref C 0 0) 3)
+   (check-eq? (matrix-ref C 0 1) 5)
+   (check-eq? (matrix-ref C 1 0) 9)
+   (check-eq? (matrix-ref C 1 1) 13))

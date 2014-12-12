@@ -17,3 +17,4 @@
 (struct param           (name type)                   #:transparent)
 
 (define int-ptr 0)
+(define int 1)
