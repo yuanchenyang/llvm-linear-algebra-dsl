@@ -14,3 +14,6 @@
 (struct func-decl       (name params body)            #:transparent)
 (struct return          (target)                      #:transparent)
 (struct block           (stmts return)                #:transparent)
+(struct param           (name type)                   #:transparent)
+
+(define int-ptr 0)

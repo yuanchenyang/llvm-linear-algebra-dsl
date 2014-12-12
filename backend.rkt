@@ -19,12 +19,12 @@
 
 (define (compile-assign node builder env context)
   (let* ([target-name (symbol-name (assign-target node))]
-	 [value (compile-ast-to-llvm (assign-value node) builder env context)]
-	 [var (hash-ref! env target-name '())])
+         [value (compile-ast-to-llvm (assign-value node) builder env context)]
+         [var (hash-ref! env target-name '())])
     (if (not (empty? var)) (LLVMBuildStore builder value var)
-	(let ([alloca (LLVMBuildAlloca builder int-type target-name)])
-	  (hash-set! env target-name alloca)
-	  (LLVMBuildStore builder value alloca)))))
+        (let ([alloca (LLVMBuildAlloca builder int-type target-name)])
+          (hash-set! env target-name alloca)
+          (LLVMBuildStore builder value alloca)))))
 
 (define (compile-for-node node builder env context)
   (begin
@@ -36,32 +36,32 @@
     ;; Create a new block
     (define loop-block-name (string-append "loop" (number->string (gen-unique-num))))
     (define loop-block (LLVMAppendBasicBlockInContext
-			context
-			(builder->function builder)
-			loop-block-name))
+                        context
+                        (builder->function builder)
+                        loop-block-name))
     (define insert-block (LLVMGetInsertBlock builder))
     (LLVMPositionBuilderAtEnd builder loop-block)
     (define old-val (hash-ref env loop-var-name null))
     (hash-set! env loop-var-name alloca)
     (map (lambda (node) (compile-ast-to-llvm node builder env context))
-	 (for-node-body node))
+         (for-node-body node))
     (define step-val (compile-ast-to-llvm (for-node-incr node) builder env context))
     (define curr-var (LLVMBuildLoad builder alloca loop-var-name))
     (define next-var (LLVMBuildAdd builder curr-var step-val "next-var"))
     (LLVMBuildStore builder next-var alloca)
     (define end (compile-ast-to-llvm (lt (symbol loop-var-name)
-					 (for-node-end node)) builder env context))
+                                         (for-node-end node)) builder env context))
     (define after-block (LLVMAppendBasicBlockInContext
-			context
-			(builder->function builder)
-			(string-append "after" loop-block-name)))
+                        context
+                        (builder->function builder)
+                        (string-append "after" loop-block-name)))
     (LLVMBuildCondBr builder end loop-block after-block)
     (LLVMPositionBuilderAtEnd builder insert-block)
     (LLVMBuildBr builder loop-block)
     (LLVMPositionBuilderAtEnd builder after-block)
     (if (not (empty? old-val))
-	(hash-set! env loop-var-name old-val)
-	'())))
+        (hash-set! env loop-var-name old-val)
+        '())))
 
 (define (compile-return node builder env context)
   (LLVMBuildRet
@@ -70,12 +70,12 @@
 
 (define (compile-binop node builder env context operator)
   (let ([op1 (compile-ast-to-llvm (binop-op1 node) builder env context)]
-	[op2 (compile-ast-to-llvm (binop-op2 node) builder env context)])
+        [op2 (compile-ast-to-llvm (binop-op2 node) builder env context)])
     (operator builder op1 op2 (gen-unique-symbol))))
 
 (define (compile-pred node builder env context operator)
   (let ([op1 (compile-ast-to-llvm (binop-op1 node) builder env context)]
-	[op2 (compile-ast-to-llvm (binop-op2 node) builder env context)])
+        [op2 (compile-ast-to-llvm (binop-op2 node) builder env context)])
     (LLVMBuildICmp builder operator op1 op2 (gen-unique-symbol))))
 
 
@@ -90,24 +90,28 @@
 
 (define (compile-ast-to-llvm node builder env context)
   (cond [(return? node)          (compile-return    node builder env context)]
-	[(add? node)             (compile-binop     node builder env context LLVMBuildAdd)]
-	[(lt? node)              (compile-pred      node builder env context 'LLVMIntULT)]
-	[(for-node? node)        (compile-for-node  node builder env context)]
-	[(assign? node)          (compile-assign    node builder env context)]
-	[(num? node)             (compile-num       node context)]
-	[(array-reference? node) (compile-array-ref node builder env context)]
-	[(symbol? node)          (compile-symbol    node builder env context)]
-	[else (error "Unsupported node")]))
+        [(add? node)             (compile-binop     node builder env context LLVMBuildAdd)]
+        [(lt? node)              (compile-pred      node builder env context 'LLVMIntULT)]
+        [(for-node? node)        (compile-for-node  node builder env context)]
+        [(assign? node)          (compile-assign    node builder env context)]
+        [(num? node)             (compile-num       node context)]
+        [(array-reference? node) (compile-array-ref node builder env context)]
+        [(symbol? node)          (compile-symbol    node builder env context)]
+        [else (error "Unsupported node")]))
 
 (define (process-params builder func params index)
   (if (null? params) '()
       (let ([x (LLVMGetParam func index)]
-	    [param (symbol-name (car params))]
-	    [alloca (create-entry-block-alloca func (gen-unique-symbol))])
-	(LLVMSetValueName x param)
-	(LLVMBuildStore builder x alloca)
-	(cons (cons param alloca)
-	      (process-params builder func (cdr params) (+ index 1))))))
+            [param (symbol-name (car params))]
+            [alloca (create-entry-block-alloca func (gen-unique-symbol))])
+        (LLVMSetValueName x param)
+        (LLVMBuildStore builder x alloca)
+        (cons (cons param alloca)
+              (process-params builder func (cdr params) (+ index 1))))))
+
+; (define (get-type param)
+;   (if )
+;   )
 
 (define (do-math program args)
   (begin
@@ -121,19 +125,19 @@
 
       (LLVMPositionBuilderAtEnd builder entry)
       (define env
-	(make-hash
-	 (process-params builder fun (func-decl-params program) 0)))
+        (make-hash
+         (process-params builder fun (func-decl-params program) 0)))
 
       (map (lambda (statement)
-	     (compile-ast-to-llvm statement builder env context))
-	   (func-decl-body program))
+             (compile-ast-to-llvm statement builder env context))
+           (func-decl-body program))
       (LLVMDumpModule module)
 
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
        (when err
          (display err) (exit 1)))
       (define int-args (map (lambda (arg)
-			      (LLVMCreateGenericValueOfInt int-type arg #t)) args))
+                              (LLVMCreateGenericValueOfInt int-type arg #t)) args))
       (LLVMLinkInJIT)
       (define ee (LLVMCreateExecutionEngineForModule module))
       
@@ -146,7 +150,7 @@
 
 (define add-func
   (func-decl "add" (list (symbol "x") (symbol "y"))
-  	  (list (return (add (symbol "x") (symbol "y"))))))
+          (list (return (add (symbol "x") (symbol "y"))))))
 
 (define a (symbol "a"))
 (define b (symbol "b"))
@@ -162,12 +166,12 @@
    (list
     (assign c a)
     (for-node i (num 0) (num 10) (num 1)
-	      (list (for-node j (num 0) (num 10) (num 1)
-			      (list (assign c (add c a))))))
+              (list (for-node j (num 0) (num 10) (num 1)
+                              (list (assign c (add c a))))))
     (return c))))
 
 (require ffi/unsafe
-	 racket/flonum)
+         racket/flonum)
 
 (do-math loop-add (list 10 10))
 
@@ -187,14 +191,31 @@
    (list
     (assign c a)
     (for-node i (num 0) (num 10) (num 1)
-	      (list
-	       (assign d (num 0))
-	       (for-node j (num 0) (num 10) (num 1)
-			 (list
-			  (assign d (add d a))
-			  (assign c (add c d))))))
+              (list
+               (assign d (num 0))
+               (for-node j (num 0) (num 10) (num 1)
+                         (list
+                          (assign d (add d a))
+                          (assign c (add c d))))))
     (return c))))
 
 (test-begin
    "Test loop variable"
    (check-eq? (do-math loop-accum (list 4 8)) 2204))
+
+(define matrix-add
+  (func-decl
+   "matrix-add"
+   (list (param "a" int-ptr) (param "b" int-ptr) (param "c" int-ptr))
+   (list
+     (for-node (symbol "u1") (num 0) (num 3) (num 1)
+      (for-node (symbol "u2") (num 0) (num 4) (num 1)
+       (assign
+        (array-reference  (symbol "c") (add (symbol "u2") (mul 3 (symbol "u1"))))
+        (add
+         (array-reference (symbol "b") (add (symbol "u2") (mul 3 (symbol "u1"))))
+         (array-reference (symbol "a") (add (symbol "u2") (mul 3 (symbol "u1")))))))))))
+
+
+
+(do-math matrix-add (list A B C))
