@@ -45,6 +45,7 @@ Special
 |#
 ; (require math/array)
 ; (require math/matrix)
+(require ffi/unsafe)
 (require "nodes.rkt")
 (require "utils.rkt")
 (require racket/pretty)
@@ -70,6 +71,12 @@ Special
 
 (define (make-matrix rows cols)
   (matrix rows cols (malloc (_array _int rows cols))))
+
+(define (ref-matrix mat row col)
+  (ptr-ref (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col)))
+
+(define (set-matrix! mat row col val)
+  (ptr-set! (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col) val))
 
 ;; TODO: add type-checking
 (define (mat-block? val)
