@@ -110,12 +110,13 @@ Special
       (block-stmts val)))
 
 (define (make-constant-matrix lst)
-  (letrec ([rows (length lst)]
-           [cols (length (car lst))]
-           [mat  (make-matrix "const" rows cols)])
+  (let* ([rows (length lst)]
+         [cols (length (car lst))]
+         [mat  (make-matrix "const" rows cols)])
     (set-matrix-constant?! mat #t)
     (matrix-load! mat lst)
     mat))
+
 
 (define (+. a b)
   ;; Adds two values together, the following types are supported:
@@ -124,7 +125,7 @@ Special
   (cond [(and (number? a) (number? b))
          (add (num a) (num b))]
         [(and (mat-block? a) (mat-block? b))
-         (letrec
+         (let*
            ([i (gen-unique-symbol)]
             [j (gen-unique-symbol)]
             [target (gen-unique-symbol)]
