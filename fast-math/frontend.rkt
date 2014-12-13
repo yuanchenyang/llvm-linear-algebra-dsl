@@ -143,14 +143,24 @@ Special
                   target))]
         [else (error "Invalid arguments to add!")]))
 
-;(define-syntax-rule (define-optimized
+(define-syntax define-optimized
+  (syntax-rules ()
+    [(_ (name (arg type) ...) body)
+     (define (name arg ...)
+       (let* ([evalb  body]
+              [strnme (symbol->string 'name)]
+              [stmts  (fusion-pass (block-stmts  evalb))]
+              [ret    (block-return evalb)]
+              [blk    (append stmts (list (return ret)))]
+              [params (list (param (symbol->string 'arg) type) ...)])
+         (func-decl strnme params blk)))]))
+
+(define-optimized (test-add (a mat) (b mat))
+    (+. a (+. b a)))
 
 (define tree
   (let ([a (make-matrix "a" 3 4)]
         [b (make-matrix "b" 3 4)])
-    (block-stmts (+. a (+. b a)))))
+    (test-add a b)))
 
 (pretty-print tree)
-(pretty-print (fusion-pass tree))
-
-(require rackunit)
