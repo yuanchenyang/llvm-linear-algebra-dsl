@@ -3,9 +3,6 @@
 (require "nodes.rkt")
 (require racket/pretty)
 
-(define-syntax-rule (for-loop loopvar start end incr body)
-  (for-node (symbol loopvar) (num start) (num end) (num incr) body))
-
 (define tree
   (func-decl
    "func1"
@@ -82,4 +79,7 @@
         [(list? tree) (foldr fuse-loops '() tree)]
         [else (error "Unsupported node type")]))
 
-(pretty-print (fusion-pass tree))
+(provide fusion-pass)
+
+;(pretty-print tree)
+;(pretty-print (fusion-pass tree))

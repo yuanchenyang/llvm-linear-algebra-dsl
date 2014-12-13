@@ -51,17 +51,12 @@ Special
 (require ffi/unsafe)
 (require "nodes.rkt")
 (require "utils.rkt")
+(require "transforms.rkt")
 (require racket/pretty)
 
 (struct symbol-ref (id)  #:transparent)
 (struct num-ref (id)     #:transparent)
 (struct call (func args) #:transparent)
-
-;; (define (contains-matrix args)
-;;   (if (null? args) #f
-;;       (let ([a (car args)])
-;;         (or (and (array? a) (matrix? a))
-;; 	       (contains-matrix (cdr args))))))
 
 ;; TODO: add types
 (struct matrix
@@ -120,6 +115,9 @@ Special
     (matrix-load! mat lst)
     mat))
 
+;; A for loop wrapped in a list, basically a block without any return statement
+(define (for-block loopvar start end incr body)
+  (list (for-loop loopvar start end incr body)))
 
 (define (+. a b)
   ;; Adds two values together, the following types are supported:
@@ -129,26 +127,30 @@ Special
          (add (num a) (num b))]
         [(and (mat-block? a) (mat-block? b))
          (let*
-           ([i (gen-unique-symbol)]
-            [j (gen-unique-symbol)]
+           ([i      (gen-unique-symbol)]
+            [j      (gen-unique-symbol)]
             [target (gen-unique-symbol)]
-            [rows (matrix-rows a)]
-            [cols (matrix-cols a)]
-            [index (add j (mul rows i))]
+            [rows   (matrix-rows a)]
+            [cols   (matrix-cols a)]
+            [index  (num (add j (mul rows i)))]
             [node
-             (for-node (symbol i) (num 0) (num rows) (num 1)
-               (for-node (symbol j) (num 0) (num cols) (num 1)
-                 (assign (array-reference target index)
-                         (add (array-reference (get-mat-id a) index)
-                              (array-reference (get-mat-id b) index)))))])
-           (block (list (get-stmts a) (get-stmts b) node)
+             (for-block i 0 rows 1
+               (for-block j 0 cols 1
+                 (list (assign (array-reference target index)
+                               (add (array-reference (get-mat-id a) index)
+                                    (array-reference (get-mat-id b) index))))))])
+           (block (flatten (get-stmts a) (get-stmts b) node)
                   target))]
         [else (error "Invalid arguments to add!")]))
 
-(pretty-print
- (let ([a (make-matrix "a" 3 4)]
-       [b (make-matrix "b" 3 4)])
-   (+. a (+. b a))))
+;(define-syntax-rule (define-optimized
 
+(define tree
+  (let ([a (make-matrix "a" 3 4)]
+        [b (make-matrix "b" 3 4)])
+    (block-stmts (+. a (+. b a)))))
+
+(pretty-print tree)
+(pretty-print (fusion-pass tree))
 
 (require rackunit)

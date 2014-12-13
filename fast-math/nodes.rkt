@@ -18,3 +18,10 @@
 
 (define int-ptr 0)
 (define int 1)
+
+(define (for-loop loopvar start end incr body)
+  (for-node (if (symbol? loopvar) loopvar (symbol loopvar))
+            (num start)
+            (num end)
+            (num incr)
+            body))
