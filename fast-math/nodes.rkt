@@ -1,20 +1,61 @@
 #lang racket
 
+(require racket/generic)
+
 (provide (all-defined-out))
 
-(struct for-node        (loop-var init end incr body) #:transparent)
-(struct assign          (target value)                #:transparent)
-(struct binop           (op1 op2)                     #:transparent)
-(struct add binop       ()                            #:transparent)
-(struct mul binop       ()                            #:transparent)
-(struct lt binop        ()                            #:transparent)
-(struct array-reference (arr index)                   #:transparent)
-(struct num             (value)                       #:transparent)
-(struct symbol          (name)                        #:transparent)
-(struct func-decl       (name params body)            #:transparent)
-(struct return          (target)                      #:transparent)
-(struct block           (stmts return)                #:transparent)
-(struct param           (name type)                   #:transparent)
+(define-generics node
+  [node-children node]
+  [node-dependencies node]
+)
+
+(struct for-node
+        (loop-var init end incr body)
+        #:transparent
+        #:methods gen:node
+        [(define (node-children node)
+           (match-let ([(for-node loopvar start end incr body) node])
+             (append (list loopvar start end incr) body)))])
+(struct assign
+        (target value)
+        #:transparent
+        #:methods gen:node
+        [(define (node-children node)
+           (match-let ([(assign target value) node])
+             (list target value)))])
+(struct binop
+        (op1 op2)
+        #:transparent
+        #:methods gen:node
+        [(define (node-children node)
+           (match-let ([(binop op1 op2) node])
+             (list op1 op2)))])
+(struct add binop () #:transparent)
+(struct mul binop () #:transparent)
+(struct lt binop  () #:transparent)
+(struct array-reference
+        (arr index)
+        #:transparent
+        #:methods gen:node
+        [(define (node-children node)
+           (match-let ([(array-reference arr index) node])
+             (list arr index)))])
+(struct num
+        (value)
+        #:transparent
+        #:methods gen:node
+        [(define (node-children node) '())])
+(struct symbol
+        (name)
+        #:transparent
+        #:methods gen:node
+        [(define (node-children node)
+           (match-let ([(symbol name) node])
+             (list name)))])
+(struct func-decl (name params body) #:transparent)
+(struct return    (target)           #:transparent)
+(struct block     (stmts return)     #:transparent)
+(struct param     (name type)        #:transparent)
 
 (define int-ptr 0)
 (define int 1)
