@@ -4,6 +4,7 @@
 (require "../fast-math/frontend.rkt")
 (require "../fast-math/backend.rkt")
 (require "../fast-math/nodes.rkt")
+(require "../fast-math/matrix.rkt")
 
 (define add-func
   (func-decl int "add" (list (param "x" int) (param "y" int))
