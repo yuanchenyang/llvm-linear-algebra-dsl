@@ -11,10 +11,11 @@
 (struct array-reference (arr index)                   #:transparent)
 (struct num             (value)                       #:transparent)
 (struct symbol          (name)                        #:transparent)
-(struct func-decl       (name params body)            #:transparent)
+(struct func-decl       (ret-type name params body)   #:transparent)
 (struct return          (target)                      #:transparent)
 (struct block           (stmts return)                #:transparent)
 (struct param           (name type)                   #:transparent)
+(struct allocate        (target type rows cols)       #:transparent)
 
 (define int-ptr 0)
 (define int 1)

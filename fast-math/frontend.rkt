@@ -63,12 +63,15 @@ Special
   (id
    rows
    cols
-   contents
+   [contents #:mutable]
    [constant? #:auto #:mutable])
   #:transparent)
 
 (define (make-matrix id rows cols)
   (matrix id rows cols (malloc (_array _int rows cols))))
+
+(define (make-matrix-with-ptr id rows cols ptr)
+  (matrix id rows cols ptr))
 
 (define (matrix-ref mat row col)
   (ptr-ref (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col)))

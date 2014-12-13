@@ -8,11 +8,15 @@
   (set! uniq (+ 1 uniq))
   uniq)
 
+(define (gen-unique-name)
+  (string-append "u" (number->string (gen-unique-num))))
+
 (define (gen-unique-symbol)
-  (symbol (string-append "u" (number->string (gen-unique-num)))))
+  (symbol (gen-unique-name)))
 
 (define flatten (lambda x (apply append x)))
 
 (provide gen-unique-num
          gen-unique-symbol
+	 gen-unique-name
          flatten)
