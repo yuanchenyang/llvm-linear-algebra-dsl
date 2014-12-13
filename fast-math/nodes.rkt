@@ -16,7 +16,10 @@
 (struct block           (stmts return)                #:transparent)
 (struct param           (name type)                   #:transparent)
 
+
+
 (define int-ptr 0)
+(define mat int-ptr)
 (define int 1)
 
 (define (for-loop loopvar start end incr body)
