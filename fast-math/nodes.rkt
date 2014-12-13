@@ -9,27 +9,43 @@
   [node-dependencies node]
 )
 
+(define (collect-uniq l)
+  (list (list->mutable-set (apply append (map car l)))
+        (list->mutable-set (apply append (map cadr l)))))
+
 (struct for-node
         (loop-var init end incr body)
         #:transparent
         #:methods gen:node
         [(define (node-children node)
            (match-let ([(for-node loopvar start end incr body) node])
-             (append (list loopvar start end incr) body)))])
+             (append (list loopvar start end incr) body)))
+         (define (node-accesses node)
+           (let ([children (node-children node)])
+             (collect-uniq (map node-accesses children))))])
 (struct assign
         (target value)
         #:transparent
         #:methods gen:node
         [(define (node-children node)
            (match-let ([(assign target value) node])
-             (list target value)))])
+             (list target value)))
+         (define (node-accesses node)
+           (match-let* ([(assign target value) node]
+                        [children (node-children node)]
+                        [(list reads writes) (collect-uniq (map node-accesses children))])
+             (set-add! writes target)
+             (list reads writes)))])
 (struct binop
         (op1 op2)
         #:transparent
         #:methods gen:node
         [(define (node-children node)
            (match-let ([(binop op1 op2) node])
-             (list op1 op2)))])
+             (list op1 op2)))
+         (define (node-accesses node)
+           (let ([children (node-children node)])
+             (collect-uniq (map node-accesses children))))])
 (struct add binop () #:transparent)
 (struct mul binop () #:transparent)
 (struct lt binop  () #:transparent)
@@ -39,19 +55,29 @@
         #:methods gen:node
         [(define (node-children node)
            (match-let ([(array-reference arr index) node])
-             (list arr index)))])
+             (list arr index)))
+         (define (node-accesses node)
+           (match-let* ([(array-reference arr index) node]
+                        [children (node-children node)]
+                        [(list reads writes) (collect-uniq (map node-accesses children))])
+             (set-add! reads arr)
+             (list reads writes)))])
 (struct num
         (value)
         #:transparent
         #:methods gen:node
-        [(define (node-children node) '())])
+        [(define (node-children node) '())
+         (define (node-accesses node) (list (mutable-set) (mutable-set)))])
 (struct symbol
         (name)
         #:transparent
         #:methods gen:node
         [(define (node-children node)
            (match-let ([(symbol name) node])
-             (list name)))])
+             (list name)))
+         (define (node-accesses node)
+           (match-let* ([(symbol name) node])
+           (list (mutable-set symbol) (mutable-set))))])
 (struct func-decl (name params body) #:transparent)
 (struct return    (target)           #:transparent)
 (struct block     (stmts return)     #:transparent)
