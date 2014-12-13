@@ -1,7 +1,5 @@
 #lang racket
 
-(provide (all-defined-out))
-
 #|
   (matrix [[expr ...+] ...+])
 
@@ -46,85 +44,18 @@ Special
   (transpose M) -> (Matrix Number)
     M: (Matrix Number)
 |#
-; (require math/array)
-; (require math/matrix)
-(require ffi/unsafe)
+
 (require "nodes.rkt")
+(require "matrix.rkt")
 (require "utils.rkt")
 (require "transforms.rkt")
 (require racket/pretty)
 
-(struct symbol-ref (id)  #:transparent)
-(struct num-ref (id)     #:transparent)
-(struct call (func args) #:transparent)
-
-;; TODO: add types
-(struct matrix
-  (id
-   rows
-   cols
-   [contents #:mutable]
-   [constant? #:auto #:mutable])
-  #:transparent)
-
-(define (make-matrix id rows cols)
-  (matrix id rows cols (malloc (_array _int rows cols))))
-
-(define (make-matrix-with-ptr id rows cols ptr)
-  (matrix id rows cols ptr))
-
-(define (matrix-ref mat row col)
-  (ptr-ref (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col)))
-
-(define (matrix-set! mat row col val)
-  (ptr-set! (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col) val))
-
-(define (matrix-load! mat vals)
-  (define i 0)
-  (for ([row vals])
-    (define j 0)
-    (for ([val row])
-      (matrix-set! mat i j val)
-      (set! j (+ j 1)))
-    (set! i (+ i 1))))
-
-(define (matrix-display mat)
-    (for ([i (matrix-rows mat)])
-      (display "(")
-      (for ([j (matrix-cols mat)])
-        (display (matrix-ref mat i j))
-        (if (not (= j (- (matrix-cols mat) 1))) (display ", ") #f))
-      (displayln ")")))
-
-;; TODO: add type-checking
-(define (mat-block? val)
-  (or (matrix? val) (block? val)))
-
-(define (get-mat-id val)
-  (if (matrix? val)
-      (matrix-id val)
-      (block-return val)))
-
-(define (get-stmts val)
-  (if (matrix? val)
-      '()
-      (block-stmts val)))
-
-(define (make-constant-matrix lst)
-  (let* ([rows (length lst)]
-         [cols (length (car lst))]
-         [mat  (make-matrix "const" rows cols)])
-    (set-matrix-constant?! mat #t)
-    (matrix-load! mat lst)
-    mat))
-
-;; A for loop wrapped in a list, basically a block without any return statement
-(define (for-block loopvar start end incr body)
-  (list (for-loop loopvar start end incr body)))
+(provide +. convolve. define-optimized)
 
 (define (+. a b)
   ;; Adds two values together, the following types are supported:
-  ;; (Number a) => (Matrix a) -> (Matrix a) -> (Matrix a)
+  ;; (Number a) => (Matrix a x y) -> (Matrix a x y) -> (Matrix a x y)
   ;; (Number a) => a -> a -> a
   (cond [(and (number? a) (number? b))
          (add (num a) (num b))]
@@ -144,16 +75,55 @@ Special
                                     (array-reference (get-mat-id b) index))))))])
            (block (flatten (get-stmts a) (get-stmts b) node)
                   target))]
-        [else (error "Invalid arguments to add!")]))
+        [else (error "Invalid type of arguments to add!")]))
 
-;(define-syntax-rule (define-optimized
+(define (convolve. a b)
+  ;; Convolves two matrices together.
+  ;; (Number a) => (Matrix a x1 y1) -> (Matrix a x2 y1) -> (Matrix a x1 y1)
+  (if (and (mat-block? a) (mat-block? b))
+      (let* ([x  (gen-unique-symbol)] [y  (gen-unique-symbol)]
+             [xx (gen-unique-symbol)] [yy (gen-unique-symbol)]
+             [target (gen-unique-symbol)]
+             [xa (matrix-cols a)] [ya (matrix-rows a)]
+             [xb (matrix-cols b)] [yb (matrix-rows b)]
+             [padx (/ xb 2)]      [pady (/ yb 2)]
+             ;; xx + x + xa * (y + yy)
+             [in-index     (num (add xx (add x (mul xa (add y yy)))))]
+             ;; x + xa * y
+             [out-index    (num (add x  (mul y xa)))]
+             ;; xx + xb * yy
+             [kern-index (num (add xx (mul xb yy)))]
+             [in   (array-reference (get-mat-id a) in-index)]
+             [out  (array-reference target out-index)]
+             [kern (array-reference (get-mat-id b) kern-index)]
+             [node (for-block y pady (- ya pady) 1
+                     (for-block x padx (- xa padx) 1
+                       (for-block yy (- pady) (+ pady 1) 1
+                         (for-block xx (- padx) (+ padx 1) 1
+                           (list (assign out (add out (mul in kern))))))))])
+        (block (flatten (get-stmts a) (get-stmts b) node)
+               target))
+      (error "Invalid type of arguments to convolve!")))
 
-(define tree
-  (let ([a (make-matrix "a" 3 4)]
-        [b (make-matrix "b" 3 4)])
-    (block-stmts (+. a (+. b a)))))
+(define-syntax define-optimized
+  (syntax-rules ()
+    [(_ (name (arg type) ...) body)
+     (define (name arg ...)
+       (let* ([evalb  body]
+              [sname  (symbol->string 'name)]
+              [stmts  (fusion-pass (block-stmts  evalb))]
+              [ret    (block-return evalb)]
+              [blk    (append stmts (list (return ret)))]
+              [params (list (param (symbol->string 'arg) type) ...)])
+         (func-decl sname params blk)))]))
 
-(pretty-print tree)
-(pretty-print (fusion-pass tree))
+(define-optimized (test-add (a mat) (b mat))
+  (+. a (+. b a)))
 
-(require rackunit)
+(let ([a (make-matrix "a" 3 4)]
+      [b (make-matrix "b" 3 4)]
+      [c (make-matrix "a" 10 10)]
+      [d (make-matrix "b" 2 2)])
+  ;(pretty-print (test-add a b))
+  (pretty-print (convolve. c d))
+  )
