@@ -28,3 +28,7 @@
             (num end)
             (num incr)
             body))
+
+;; A for loop wrapped in a list, basically a block without any return statementss
+(define (for-block loopvar start end incr body)
+  (list (for-loop loopvar start end incr body)))
