@@ -61,19 +61,21 @@ Special
          (add (num a) (num b))]
         [(and (mat-block? a) (mat-block? b))
          (let*
-           ([i      (gen-unique-symbol)]
-            [j      (gen-unique-symbol)]
+           ([i      (gen-unique-symbol)] [j (gen-unique-symbol)]
             [target (gen-unique-symbol)]
-            [rows   (matrix-rows a)]
-            [cols   (matrix-cols a)]
-            [index  (num (add j (mul rows i)))]
+            [rows   (matrix-rows a)] [cols  (matrix-cols a)]
+            [nrows  (num rows)]      [ncols (num cols)]
+            [index  (add j (mul nrows i))]
             [node
              (for-block i 0 rows 1
                (for-block j 0 cols 1
                  (list (assign (array-reference target index)
                                (add (array-reference (get-mat-id a) index)
                                     (array-reference (get-mat-id b) index))))))])
-           (block (append (get-stmts a) (get-stmts b) node)
+           (block (append (get-stmts a)
+                          (get-stmts b)
+                          (list (allocate target mat rows cols))
+                          node)
                   target))]
         [else (error "Invalid type of arguments to add!")]))
 
@@ -86,13 +88,14 @@ Special
              [target (gen-unique-symbol)]
              [xa (matrix-cols a)] [ya (matrix-rows a)]
              [xb (matrix-cols b)] [yb (matrix-rows b)]
-             [padx (/ xb 2)]      [pady (/ yb 2)]
-             ;; xx + x + xa * (y + yy)
-             [in-index     (num (add xx (add x (mul xa (add y yy)))))]
-             ;; x + xa * y
-             [out-index    (num (add x  (mul y xa)))]
-             ;; xx + xb * yy
-             [kern-index (num (add xx (mul xb yy)))]
+             [nxa (num xa)] [nxb (num xb)]
+             [padx (quotient xb 2)]      [pady (quotient yb 2)]
+             ;; xx + x + nxa * (y + yy)
+             [in-index     (add xx (add x (mul nxa (add y yy))))]
+             ;; x + nxa * y
+             [out-index    (add x  (mul y nxa))]
+             ;; xx + nxb * yy
+             [kern-index (num (add xx (mul nxb yy)))]
              [in   (array-reference (get-mat-id a) in-index)]
              [out  (array-reference target out-index)]
              [kern (array-reference (get-mat-id b) kern-index)]
@@ -101,9 +104,15 @@ Special
                        (for-block yy (- pady) (+ pady 1) 1
                          (for-block xx (- padx) (+ padx 1) 1
                            (list (assign out (add out (mul in kern))))))))])
-        (block (append (get-stmts a) (get-stmts b) node)
+        (block (append
+                (get-stmts a)
+                (get-stmts b)
+                (list (allocate target mat ya xa))
+                node)
                target))
       (error "Invalid type of arguments to convolve!")))
+
+(define (do-math x) x)
 
 (define-syntax define-optimized
   (syntax-rules ()
@@ -111,21 +120,23 @@ Special
      (define (name arg ...)
        (let* ([evalb    body]
               [sname    (symbol->string 'name)]
+              ;; [stmts   (block-stmts  evalb)]
               [stmts    (fusion-pass (block-stmts  evalb))]
               [ret      (block-return evalb)]
               [blk      (append stmts (list (return ret)))]
               [params   (list (param (symbol->string 'arg) type) ...)]
               [compiled (do-math (func-decl ret-type sname params blk))])
+         ;;compiled))]))
          (compiled arg ...)))]))
 
 
  (define-optimized (test-add mat (a mat) (b mat))
    (+. a (+. b a)))
 
-(let ([a (make-matrix "a" 3 4)]
-      [b (make-matrix "b" 3 4)]
+(let ([a (make-constant-matrix "a" '((1 2 3) (4 5 6)))]
+      [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
       [c (make-matrix "c" 10 10)]
-      [d (make-matrix "d" 2 2)])
+      [d (make-constant-matrix "d" '((-1 0 1) (-2 0 2) (-1 0 1)))])
   (pretty-print (test-add a b))
   (pretty-print (convolve. c d))
   )
