@@ -3,6 +3,8 @@
 (require "nodes.rkt")
 (require racket/pretty)
 
+(provide fusion-pass replace-symbol)
+
 (define tree
   (func-decl
    int-ptr
@@ -44,7 +46,7 @@
 (define (replace-symbol-array-reference tree replacer)
   (match-let ([(array-reference arr index) tree])
     ;; TODO: Hack wrap arr in symbol so it's recursively handled
-    (array-reference (replacer (symbol arr)) (replacer index))))
+    (array-reference (replacer arr) (replacer index))))
 
 (define (replace-symbol-binop tree op replacer)
   (match-let ([(binop op1 op2) tree])
@@ -80,7 +82,7 @@
         [(list? tree) (foldr fuse-loops '() tree)]
         [else (error "Unsupported node type")]))
 
-(provide fusion-pass)
+
 
 ;(pretty-print tree)
 ;(pretty-print (fusion-pass tree))
