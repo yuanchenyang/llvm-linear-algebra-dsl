@@ -30,7 +30,7 @@
 
 (define (compile-assign-array-ref node builder env context value)
   (match-let* ([(array-reference arr index) (assign-target node)]
-               [var (hash-ref env arr (lambda () (error "Assigning to undeclared array")))]
+               [var (hash-ref env (symbol-name arr) (lambda () (error "Assigning to undeclared array")))]
                [index (compile-ast-to-llvm index builder env context)]
                [gep (LLVMBuildGEP builder var (list index) (gen-unique-name))])
 	      (LLVMBuildStore builder value gep)))
@@ -110,7 +110,7 @@
 (define (compile-array-ref node builder env context)
   (match-let ([(array-reference arr index) node]
               [name (gen-unique-name)])
-    (define ptr (LLVMBuildGEP builder (hash-ref env arr)
+    (define ptr (LLVMBuildGEP builder (hash-ref env (symbol-name arr))
                   (list (compile-ast-to-llvm index builder env context)) name))
     (LLVMBuildLoad builder ptr name)))
 
