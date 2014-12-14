@@ -1,9 +1,10 @@
 #lang racket
 
 (require "nodes.rkt")
+(require "matrix.rkt")
 (require racket/pretty)
 
-(provide fusion-pass replace-symbol)
+(provide fusion-pass constant-fold for-unroll)
 
 (define tree
   (func-decl
@@ -31,46 +32,60 @@
               (array-reference "a" (add (symbol "y2") (mul (num 2) (symbol "y1"))))))))))
      (return (symbol "d")))))
 
-(define (replace-symbol-for-node tree replacer)
+(define (fold-symbol-for-node tree folder)
   (match-let ([(for-node loopvar start end incr body pragmas) tree])
-    (for-node (replacer loopvar)
-              (replacer start)
-              (replacer end)
-              (replacer incr)
+    (for-node (folder loopvar)
+              (folder start)
+              (folder end)
+              (folder incr)
               pragmas
-              (map replacer body))))
+              (map folder body))))
 
-(define (replace-symbol-assign tree replacer)
+(define (fold-symbol-assign tree folder)
   (match-let ([(assign target value) tree])
-    (assign (replacer target) (replacer value))))
+    (assign (folder target) (folder value))))
 
-(define (replace-symbol-array-reference tree replacer)
+(define (fold-symbol-array-reference tree folder)
   (match-let ([(array-reference arr index) tree])
     ;; TODO: Hack wrap arr in symbol so it's recursively handled
-    (array-reference (replacer arr) (replacer index))))
+    (let ([a (folder arr)]
+          [i (folder index)])
+      (if (and (matrix? a) (matrix-constant? a) (num? i))
+          (num (matrix-ref-index a (num-value i)))
+          (array-reference a i)))))
 
-(define (replace-symbol-binop tree op replacer)
+(define (fold-symbol-binop tree op op-fn folder)
   (match-let ([(binop op1 op2) tree])
-    (op (replacer op1) (replacer op2))))
+    (let ([a (folder op1)]
+          [b (folder op2)])
+      (if (and (num? a) (num? b))
+          (num (+ (num-value a) (num-value b)))
+          (add a b)))))
 
-(define (replace-symbol to-replace new)
-  (define (replacer tree)
-    (cond [(for-node? tree) (replace-symbol-for-node tree replacer)]
-          [(symbol? tree) (if (equal? (symbol-name tree) to-replace)
-                            (symbol new) tree)]
-          [(assign? tree) (replace-symbol-assign tree replacer)]
-          [(array-reference? tree) (replace-symbol-array-reference tree replacer)]
-          [(add? tree) (replace-symbol-binop tree add replacer)]
-          [(mul? tree) (replace-symbol-binop tree mul replacer)]
+(define (constant-fold env)
+  (define (folder tree)
+    (cond [(for-node? tree) (fold-symbol-for-node tree folder)]
+          [(symbol? tree)
+           (let ([name (symbol-name tree)])
+             (if (hash-has-key? env name)
+                 (hash-ref env name)
+                 tree))]
+          [(assign? tree) (fold-symbol-assign tree folder)]
+          [(array-reference? tree) (fold-symbol-array-reference tree folder)]
+          [(add? tree) (fold-symbol-binop tree add + folder)]
+          [(mul? tree) (fold-symbol-binop tree mul * folder)]
           [(num? tree) tree]
           [else (error tree)]))
-  replacer)
+  folder)
 
 (define (fuse loop1 loop2)
   (match-let* ([(for-node loopvar start end incr body pragmas) loop1]
                [(for-node loopvar2 start2 end2 incr2 body2 pragmas) loop2]
-               [body-replaced (map (replace-symbol (symbol-name loopvar) (symbol-name loopvar2)) body)])
-    (struct-copy for-node loop2 [body (foldr fuse-loops '() (append body-replaced body2))])))
+               [body-folded
+                (map (constant-fold
+                      (make-hash (list (cons (symbol-name loopvar) loopvar2))))
+                     body)])
+    (struct-copy for-node loop2 [body (foldr fuse-loops '() (append body-folded body2))])))
 
 (define (fuse-loops prev result)
   (cond [(null? result) (list prev)]
@@ -82,6 +97,13 @@
   (cond [(func-decl? tree) (struct-copy func-decl tree [body (fusion-pass (func-decl-body tree))])]
         [(list? tree) (foldr fuse-loops '() tree)]
         [else (error "Unsupported node type")]))
+
+(define (for-unroll env loopvar start end incr body [pragmas '()] )
+  (for/list ([i (in-range start end incr)])
+    (hash-set! env (symbol-name loopvar) (num i))
+    ((constant-fold env)
+     body)))
+
 
 
 

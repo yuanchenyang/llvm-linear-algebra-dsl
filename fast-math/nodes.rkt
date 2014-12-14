@@ -2,7 +2,10 @@
 
 (require racket/generic)
 
-(provide (all-defined-out))
+(provide
+ (except-out
+  (all-defined-out)
+  collect-uniq))
 
 (define-generics node
   [node-children node]
@@ -37,6 +40,7 @@
                         [(list reads writes) (collect-uniq (map node-accesses children))])
              (set-add! writes target)
              (list reads writes)))])
+
 (struct binop
         (op1 op2)
         #:transparent
@@ -47,9 +51,13 @@
          (define (node-accesses node)
            (let ([children (node-children node)])
              (collect-uniq (map node-accesses children))))])
+
 (struct add binop () #:transparent)
+
 (struct mul binop () #:transparent)
+
 (struct lt binop  () #:transparent)
+
 (struct array-reference
         (arr index)
         #:transparent
@@ -69,6 +77,7 @@
         #:methods gen:node
         [(define (node-children node) '())
          (define (node-accesses node) (list (mutable-set) (mutable-set)))])
+
 (struct symbol
         (name)
         #:transparent

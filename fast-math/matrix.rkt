@@ -22,6 +22,9 @@
 (define (matrix-ref mat row col)
   (ptr-ref (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col)))
 
+(define (matrix-ref-index mat index)
+  (ptr-ref (matrix-contents mat) _int index))
+
 (define (matrix-set! mat row col val)
   (ptr-set! (matrix-contents mat) _int (+ (* row (matrix-cols mat)) col) val))
 
@@ -60,6 +63,7 @@
   (let* ([rows (length lst)]
          [cols (length (car lst))]
          [mat  (make-matrix name rows cols)])
+    (set-matrix-constant?! mat #t)
     (for ([row lst]
           [y   (in-naturals 0)])
       (for ([val row]

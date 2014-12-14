@@ -45,12 +45,13 @@ Special
     M: (Matrix Number)
 |#
 
+(require racket/pretty)
+
 (require "nodes.rkt")
 (require "matrix.rkt")
 (require "utils.rkt")
 (require "transforms.rkt")
 (require "backend.rkt")
-(require racket/pretty)
 
 (provide +. convolve. define-optimized)
 
