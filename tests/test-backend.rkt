@@ -1,7 +1,6 @@
 #lang racket
 
 (require rackunit)
-(require "../fast-math/frontend.rkt")
 (require "../fast-math/backend.rkt")
 (require "../fast-math/nodes.rkt")
 (require "../fast-math/matrix.rkt")
