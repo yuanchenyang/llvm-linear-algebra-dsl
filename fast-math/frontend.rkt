@@ -70,7 +70,7 @@ Special
             [node
              (for-block i 0 rows 1
                (for-block j 0 cols 1
-                 (list (assign (array-reference target index)
+                 (list (assign (array-reference (symbol-name target) index)
                                (add (array-reference (get-mat-id a) index)
                                     (array-reference (get-mat-id b) index))))))])
            (block (append (get-stmts a) (get-stmts b) node)
@@ -122,8 +122,8 @@ Special
 
 (let ([a (make-matrix "a" 3 4)]
       [b (make-matrix "b" 3 4)]
-      [c (make-matrix "a" 10 10)]
-      [d (make-matrix "b" 2 2)])
+      [c (make-matrix "c" 10 10)]
+      [d (make-matrix "d" 2 2)])
   (pretty-print (test-add a b))
   ;(pretty-print (convolve. c d))
   )
