@@ -108,7 +108,7 @@ Special
 (define-syntax define-optimized
   (syntax-rules ()
     [(_ (name ret-type (arg type) ...) body)
-     (define name
+     (define (name arg ...)
        (let* ([evalb    body]
               [sname    (symbol->string 'name)]
               [stmts    (fusion-pass (block-stmts  evalb))]
@@ -116,11 +116,11 @@ Special
               [blk      (append stmts (list (return ret)))]
               [params   (list (param (symbol->string 'arg) type) ...)]
               [compiled (do-math (func-decl ret-type sname params blk))])
-         (lambda (arg ...)
-           (compiled (arg ...)))))]))
+         (compiled arg ...)))]))
 
-(define-optimized (test-add mat (a mat) (b mat))
-  (+. a (+. b a)))
+
+ (define-optimized (test-add mat (a mat) (b mat))
+   (+. a (+. b a)))
 
 (let ([a (make-matrix "a" 3 4)]
       [b (make-matrix "b" 3 4)]
