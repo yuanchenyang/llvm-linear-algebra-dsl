@@ -107,7 +107,7 @@ Special
 
 (define-syntax define-optimized
   (syntax-rules ()
-    [(_ (name (arg type) ...) body)
+    [(_ (name ret-type (arg type) ...) body)
      (define (name arg ...)
        (let* ([evalb  body]
               [sname  (symbol->string 'name)]
@@ -115,15 +115,15 @@ Special
               [ret    (block-return evalb)]
               [blk    (append stmts (list (return ret)))]
               [params (list (param (symbol->string 'arg) type) ...)])
-         (func-decl sname params blk)))]))
+         (func-decl ret-type sname params blk)))]))
 
-(define-optimized (test-add (a mat) (b mat))
+(define-optimized (test-add mat (a mat) (b mat))
   (+. a (+. b a)))
 
 (let ([a (make-matrix "a" 3 4)]
       [b (make-matrix "b" 3 4)]
       [c (make-matrix "a" 10 10)]
       [d (make-matrix "b" 2 2)])
-  ;(pretty-print (test-add a b))
-  (pretty-print (convolve. c d))
+  (pretty-print (test-add a b))
+  ;(pretty-print (convolve. c d))
   )
