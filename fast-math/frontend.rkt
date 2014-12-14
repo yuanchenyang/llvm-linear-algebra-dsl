@@ -49,6 +49,7 @@ Special
 (require "matrix.rkt")
 (require "utils.rkt")
 (require "transforms.rkt")
+(require "backend.rkt")
 (require racket/pretty)
 
 (provide +. convolve. define-optimized)
@@ -123,7 +124,7 @@ Special
               ;; [stmts   (block-stmts  evalb)]
               [stmts    (fusion-pass (block-stmts  evalb))]
               [ret      (block-return evalb)]
-              [blk      (append stmts (list (return ret)))]
+              [blk      (block stmts (return ret))]
               [params   (list (param (symbol->string 'arg) type) ...)]
               [compiled (do-math (func-decl ret-type sname params blk))])
          ;;compiled))]))
