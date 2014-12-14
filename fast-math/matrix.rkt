@@ -49,7 +49,7 @@
 (define (get-mat-id val)
   (if (matrix? val)
       (matrix-id val)
-      (block-return val)))
+      (symbol-name (block-return val))))
 
 (define (get-stmts val)
   (if (matrix? val)
