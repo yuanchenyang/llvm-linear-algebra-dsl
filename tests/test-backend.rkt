@@ -73,10 +73,10 @@
 	(for-node (symbol "u2") (num 0) (num 2) (num 1)
 	 (list
 	   (assign
-	    (array-reference  "c" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+	    (array-reference  (symbol "c") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
 	    (add
-	     (array-reference "b" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
-	     (array-reference "a" (add (symbol "u2") (mul (num 2) (symbol "u1")))))))))))
+	     (array-reference (symbol "b") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+	     (array-reference (symbol "a") (add (symbol "u2") (mul (num 2) (symbol "u1")))))))))))
     (return (symbol "c")))))
 
 
