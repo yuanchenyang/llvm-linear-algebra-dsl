@@ -4,6 +4,7 @@
 (require fast-math/backend)
 (require fast-math/nodes)
 (require fast-math/matrix)
+(provide backend-tests)
 
 (define add-func
   (func-decl int "add" (list (param "x" int) (param "y" int))
@@ -30,14 +31,6 @@
                (list pragma-ignore-loop-deps)))
     (return c))))
 
-(test-begin
-   "Test simple add"
-   (check-eq? ((do-math add-func) 5 2) 7))
-
-(test-begin
-   "Test for loop"
-   (check-eq? ((do-math loop-add) 10 10) 1010))
-
 
 (define loop-accum
   (func-decl
@@ -58,10 +51,6 @@
                (list pragma-ignore-loop-deps)))
     (return c))))
 
-(test-begin
-   "Test loop variable"
-   (check-eq? ((do-math loop-accum) 4 8) 2204))
-
 (define matrix-add
   (func-decl
    int-ptr
@@ -71,26 +60,40 @@
     (list
      (allocate (symbol "c") int-ptr 2 2)
      (for-node (symbol "u1") (num 0) (num 2) (num 1)
-	(for-block (symbol "u2") 0 2 1
-	 (list
-	   (assign
-	    (array-reference  (symbol "c") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
-	    (add
-	     (array-reference (symbol "b") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
-	     (array-reference (symbol "a") (add (symbol "u2")
-                                                (mul (num 2) (symbol "u1")))))))
-         (list pragma-ignore-loop-deps))
-        (list pragma-ignore-loop-deps)))
+               (for-block (symbol "u2") 0 2 1
+                          (list
+                           (assign
+                            (array-reference  (symbol "c") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+                            (add
+                             (array-reference (symbol "b") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+                             (array-reference (symbol "a") (add (symbol "u2")
+                                                                (mul (num 2) (symbol "u1")))))))
+                          (list pragma-ignore-loop-deps))
+               (list pragma-ignore-loop-deps)))
     (return (symbol "c")))))
-
 
 (define A (make-constant-matrix "B" (list (list 1 3) (list 4 7))))
 (define B (make-constant-matrix "C" (list (list 2 2) (list 5 6))))
 
-(test-begin
-   "Test matrix-add"
-   (let ([C ((do-math matrix-add) A B)])
-     (check-eq? (matrix-ref C 0 0) 3)
-     (check-eq? (matrix-ref C 0 1) 5)
-     (check-eq? (matrix-ref C 1 0) 9)
-     (check-eq? (matrix-ref C 1 1) 13)))
+(define backend-tests
+  (test-suite
+   "Backend tests"
+   (test-case
+    "Test simple add"
+    (check-eq? ((do-math add-func) 5 2) 7))
+
+   (test-case
+    "Test for loop"
+    (check-eq? ((do-math loop-add) 10 10) 1010))
+
+   (test-case
+    "Test loop variable"
+    (check-eq? ((do-math loop-accum) 4 8) 2204))
+
+   (test-case
+    "Test matrix-add"
+    (let ([C ((do-math matrix-add) A B)])
+      (check-eq? (matrix-ref C 0 0) 3)
+      (check-eq? (matrix-ref C 0 1) 5)
+      (check-eq? (matrix-ref C 1 0) 9)
+      (check-eq? (matrix-ref C 1 1) 13)))))

@@ -2,6 +2,7 @@
 
 (require rackunit)
 (require fast-math/nodes)
+(provide dependencies-tests)
 
 (define add-func
   (func-decl int "add" (list (param "x" int) (param "y" int))
@@ -29,19 +30,13 @@
   (func-decl int "loop-add" (list (param "a" int) (param "b" int))
              (block (list loop-1-assgn-1 loop-1-loop-outer) (return c))))
 
-;(define accesses (node-accesses loop-add))
-;(define reads (car accesses))
-;(define writes (cadr accesses))
-;(display "reads: ")
-;(displayln (set->list reads))
-;(display "writes: ")
-;(displayln (set->list writes))
-
-(test-begin
-   "Test loop-add dependencies"
-   (define deps (node-dependencies loop-add))
-   (define expected-deps (list '() (list loop-1-assgn-1)))
-   (check-equal? deps expected-deps))
+                                        ;(define accesses (node-accesses loop-add))
+                                        ;(define reads (car accesses))
+                                        ;(define writes (cadr accesses))
+                                        ;(display "reads: ")
+                                        ;(displayln (set->list reads))
+                                        ;(display "writes: ")
+                                        ;(displayln (set->list writes))
 
 (define loop-2-assgn-1 (assign c a))
 (define loop-2-assgn-2 (assign d (num 0)))
@@ -61,8 +56,19 @@
     (list loop-2-assgn-1 loop-2-loop-1)
     (return c))))
 
-(test-begin
- "Test loop-add dependencies"
- (define deps (node-dependencies loop-accum))
- (define expected-deps (list '() (list loop-2-assgn-1)))
- (check-equal? deps expected-deps))
+(define dependencies-tests
+  (test-suite
+   "Test Dependencies"
+   (test-case
+    "Test loop-add dependencies"
+    (define deps (node-dependencies loop-add))
+    (define expected-deps (list '() (list loop-1-assgn-1)))
+    (check-equal? deps expected-deps))
+
+
+   (test-case
+    "Test loop-add dependencies"
+    (define deps (node-dependencies loop-accum))
+    (define expected-deps (list '() (list loop-2-assgn-1)))
+    (check-equal? deps expected-deps))))
+

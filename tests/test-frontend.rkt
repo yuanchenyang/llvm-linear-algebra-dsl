@@ -1,6 +1,9 @@
+#lang racket
+
 (require fast-math/frontend)
 (require fast-math/matrix)
 (require fast-math/nodes)
+(provide frontend-tests)
 
 (define-optimized (test-add mat (a mat) (b mat))
   (+. a (+. b a)))
@@ -17,14 +20,17 @@
   (matrix-display (test-convolve c d)))
 
 (require rackunit)
-(test-begin
- "Test add"
- (let* ([a (make-constant-matrix "a" '((1 2 3) (4 5 6)))]
-        [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
-        [actual (test-add a b)])
-   (check-eq? (matrix-ref actual 0 0) 9)
-   (check-eq? (matrix-ref actual 0 1) 12)
-   (check-eq? (matrix-ref actual 0 2) 15)
-   (check-eq? (matrix-ref actual 1 0) 18)
-   (check-eq? (matrix-ref actual 1 1) 21)
-   (check-eq? (matrix-ref actual 1 2) 24)))
+(define frontend-tests
+  (test-suite
+   "Frontend tests"
+   (test-case
+    "Test add"
+    (let* ([a (make-constant-matrix "a" '((1 2 3) (4 5 6)))]
+           [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
+           [actual (test-add a b)])
+      (check-eq? (matrix-ref actual 0 0) 9)
+      (check-eq? (matrix-ref actual 0 1) 12)
+      (check-eq? (matrix-ref actual 0 2) 15)
+      (check-eq? (matrix-ref actual 1 0) 18)
+      (check-eq? (matrix-ref actual 1 1) 21)
+      (check-eq? (matrix-ref actual 1 2) 24)))))

@@ -55,13 +55,12 @@
 
 (define (compile-for-node node builder env context)
   (let* ([loop-var-name (symbol-name (for-node-loop-var node))]
-         [alloca (create-entry-block-alloca (builder->function builder) 
-                                            loop-var-name)]
+         [alloca (create-entry-block-alloca
+                  (builder->function builder) loop-var-name)]
          [loop-block-name (string-append "loop" (number->string (gen-unique-num)))]
-         [loop-block (LLVMAppendBasicBlockInContext context
-                        (builder->function builder) loop-block-name)]
-         [old-val (hash-ref env loop-var-name null)]
-         )
+         [loop-block (LLVMAppendBasicBlockInContext
+                      context (builder->function builder) loop-block-name)]
+         [old-val (hash-ref env loop-var-name null)])
     (compile-start-val (for-node-init node) builder env context alloca)
     (LLVMBuildBr builder loop-block)
     (LLVMPositionBuilderAtEnd builder loop-block)
@@ -71,12 +70,12 @@
     (compile-update-loop-var (for-node-incr node) builder env context alloca 
                              loop-var-name)
     (let* ([end (compile-ast-to-llvm 
-                  (lt (symbol loop-var-name) 
-                      (for-node-end node)) builder env context)]
+                 (lt (symbol loop-var-name) 
+                     (for-node-end node)) builder env context)]
            [after-block (LLVMAppendBasicBlockInContext
-                        context
-                        (builder->function builder)
-                        (string-append "after" loop-block-name))])
+                         context
+                         (builder->function builder)
+                         (string-append "after" loop-block-name))])
       (LLVMBuildCondBr builder end loop-block after-block)
       (LLVMPositionBuilderAtEnd builder after-block))
     (if (not (empty? old-val))
@@ -167,31 +166,44 @@
         [(integer? arg) (LLVMCreateGenericValueOfInt int-type arg #t)]
         [else (error "Unsupport argument type")]))
 
+(define (get-params-from-allocs alloc)
+  (param (symbol-name (allocate-target alloc))
+         (allocate-type alloc)))
+
+(define (build-symbol-table params builder fun)
+  (for/list ([index (in-naturals 0)] [param params]) 
+    (let ([type (param-type param)])
+      (cond [(= int-ptr type) (process-matrix builder fun param index)]
+            [(= int type)     (process-int    builder fun param index)]
+            [else             (error "Unsupport argument type")]))))
+
+(define (build-matrix-from-alloc alloc)
+  (make-matrix (symbol-name (allocate-target alloc))
+               (allocate-rows alloc) (allocate-cols alloc)))
+
+(define (get-return-matrix output args-and-allocs ret-symb)
+  (let ([ptr (LLVMGenericValueToPointer output)]
+        [mat (car (filter (lambda (x) (equal? (matrix-id x) ret-symb)) args-and-allocs))])
+    (make-matrix-with-ptr (matrix-id mat) (matrix-rows mat)
+                          (matrix-cols mat) ptr)))
+
 (define (do-math program)
   (begin
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
     (define allocs-body (split allocate? (block-stmts (func-decl-body program))))
     (define allocs (car allocs-body))
     (define body (cdr allocs-body))
-    (define params (append (func-decl-params program)
-			   (map (lambda (a) (param (symbol-name (allocate-target a))
-                                                   (allocate-type a)))
-                                allocs)))
+    (define params (append (func-decl-params program) (map get-params-from-allocs allocs)))
     (define param-types (map get-type params))
-    (define fun-type (LLVMFunctionType (convert-type (func-decl-ret-type program)) param-types false))
+    (define fun-type (LLVMFunctionType
+                      (convert-type (func-decl-ret-type program)) param-types false))
     (define fun (LLVMAddFunction module (func-decl-name program) fun-type))
     (let ()
       (define entry (LLVMAppendBasicBlockInContext context fun "entry"))
       (define builder (LLVMCreateBuilderInContext context))
 
       (LLVMPositionBuilderAtEnd builder entry)
-      (define env (make-hash
-                   (for/list ([index (in-naturals 0)]
-                              [param params]) 
-                     (let ([type (param-type param)])
-                       (cond [(= int-ptr type) (process-matrix builder fun param index)]
-                             [(= int type)     (process-int    builder fun param index)]
-                             [else             (error "Unsupport argument type")])))))
+      (define env (make-hash (build-symbol-table params builder fun)))
 
       (map (lambda (statement)
              (compile-ast-to-llvm statement builder env context))
@@ -204,19 +216,11 @@
         (when err
           (display err) (exit 1)))
       (lambda args
-        (define args-and-allocs
-          (append args (map (lambda (a)
-                              (make-matrix (symbol-name (allocate-target a))
-                                           (allocate-rows a) (allocate-cols a))) allocs)))
-
+        (define args-and-allocs (append args (map build-matrix-from-alloc allocs))) 
         (define processed-args (map convert-arg args-and-allocs))
         (LLVMLinkInJIT)
         (define ee (LLVMCreateExecutionEngineForModule module))
         (define output (LLVMRunFunction ee fun processed-args))
         (cond [(= (func-decl-ret-type program) int-ptr)
-               (let ([ptr (LLVMGenericValueToPointer output)]
-                     [mat (car (filter (lambda (x) (equal? (matrix-id x) ret-symb))
-                                       args-and-allocs))])
-                 (make-matrix-with-ptr (matrix-id mat) (matrix-rows mat)
-                                       (matrix-cols mat) ptr))]
+               (get-return-matrix output args-and-allocs ret-symb)]
               [(= (func-decl-ret-type program) int) (LLVMGenericValueToInt output #t)])))))
