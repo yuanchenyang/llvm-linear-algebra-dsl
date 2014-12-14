@@ -78,12 +78,11 @@
          (define (node-accesses node)
            (match-let* ([(symbol name) node])
            (list (mutable-set symbol) (mutable-set))))])
-(struct func-decl (name params body) #:transparent)
-(struct return    (target)           #:transparent)
-(struct block     (stmts return)     #:transparent)
-(struct param     (name type)        #:transparent)
-
-
+(struct func-decl (ret-type name params body)      #:transparent)
+(struct return    (target)                         #:transparent)
+(struct block     (stmts return)                   #:transparent)
+(struct param     (name type)                      #:transparent)
+(struct allocate  (target type rows cols)          #:transparent)
 
 (define int-ptr 0)
 (define mat int-ptr)
@@ -95,3 +94,7 @@
             (num end)
             (num incr)
             body))
+
+;; A for loop wrapped in a list, basically a block without any return statementss
+(define (for-block loopvar start end incr body)
+  (list (for-loop loopvar start end incr body)))
