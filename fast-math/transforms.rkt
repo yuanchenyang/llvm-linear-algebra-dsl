@@ -1,8 +1,7 @@
 #lang racket
 
-(require "nodes.rkt")
-(require "matrix.rkt")
-(require racket/pretty)
+(require fast-math/nodes)
+(require fast-math/matrix)
 
 (provide fusion-pass constant-fold for-unroll)
 

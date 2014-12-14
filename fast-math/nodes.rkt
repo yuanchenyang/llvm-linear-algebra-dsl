@@ -36,7 +36,7 @@
         #:methods gen:node
         [(define/generic super-accesses node-accesses)
          (define (node-children node)
-           (match-let ([(for-node loopvar start end incr body) node])
+           (match-let ([(for-node loopvar start end incr body pragmas) node])
              (append (list loopvar start end incr) body)))
          (define (node-map fn node)
            (map (lambda (n) (node-map fn n)) (node-children node)))
@@ -45,9 +45,6 @@
                      (filter-before (lambda (c) (dependent? child c))
                                     (lambda (c) (eq? c child))
                                     (for-node-body node))))
-        [(define (node-children node)
-           (match-let ([(for-node loopvar start end incr body pragmas) node])
-             (append (list loopvar start end incr) body)))
          (define (node-accesses node)
            (let ([children (node-children node)])
              (collect-uniq (map super-accesses children))))])

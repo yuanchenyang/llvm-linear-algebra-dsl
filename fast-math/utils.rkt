@@ -1,6 +1,6 @@
 #lang racket
 
-(require "nodes.rkt")
+(require fast-math/nodes)
 
 (define uniq 0)
 

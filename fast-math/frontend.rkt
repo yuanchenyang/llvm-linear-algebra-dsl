@@ -47,11 +47,11 @@ Special
 
 (require racket/pretty)
 
-(require "nodes.rkt")
-(require "matrix.rkt")
-(require "utils.rkt")
-(require "transforms.rkt")
-(require "backend.rkt")
+(require fast-math/nodes)
+(require fast-math/matrix)
+(require fast-math/utils)
+(require fast-math/transforms)
+(require fast-math/backend)
 
 (provide +. convolve. define-optimized)
 
@@ -92,12 +92,13 @@ Special
              [xb (matrix-cols b)] [yb (matrix-rows b)]
              [nxa (num xa)] [nxb (num xb)]
              [padx (quotient xb 2)]      [pady (quotient yb 2)]
+             [npadx (num padx)]          [npady (num pady)]
              ;; xx + x + nxa * (y + yy)
              [in-index     (add xx (add x (mul nxa (add y yy))))]
              ;; x + nxa * y
              [out-index    (add x  (mul y nxa))]
              ;; xx + nxb * yy
-             [kern-index (add xx (mul nxb yy))]
+             [kern-index (add (add npadx xx) (mul nxb (add npady yy)))]
              [in   (array-reference (get-mat-id a) in-index)]
              [out  (array-reference target out-index)]
              [kern (array-reference (get-mat-id b) kern-index)]
@@ -139,12 +140,12 @@ Special
 
 (let ([a (make-constant-matrix "a" '((1 2 3) (4 5 6)))]
       [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
-      [c (make-constant-matrix "c" '((1 1 1 1 1)
+      [c (make-constant-matrix "a" '((1 1 1 1 1)
                                      (1 5 5 5 1)
                                      (1 5 5 5 1)
                                      (1 5 5 5 1)
                                      (1 1 1 1 1)))]
-      [d (make-constant-matrix "d" '((-1 0 1) (-2 0 2) (-1 0 1)))])
+      [d (make-constant-matrix "b" '((0 1 2) (3 4 5) (6 7 8)))])
   (matrix-display (test-add a b))
-  (matrix-display ( a b))
+  (matrix-display (test-convolve c d))
   )

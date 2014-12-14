@@ -1,6 +1,6 @@
 #lang racket
 (require ffi/unsafe)
-(require "nodes.rkt")
+(require fast-math/nodes)
 
 (provide (all-defined-out))
 

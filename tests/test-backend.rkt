@@ -1,9 +1,9 @@
 #lang racket
 
 (require rackunit)
-(require "../fast-math/backend.rkt")
-(require "../fast-math/nodes.rkt")
-(require "../fast-math/matrix.rkt")
+(require fast-math/backend)
+(require fast-math/nodes)
+(require fast-math/matrix)
 
 (define add-func
   (func-decl int "add" (list (param "x" int) (param "y" int))
@@ -23,6 +23,7 @@
    (list (param "a" int) (param "b" int))
    (block
     (list
+     (assign c a)
      (for-node i (num 0) (num 10) (num 1)
                (for-block j 0 10 1
                           (list (assign c (add c a))))

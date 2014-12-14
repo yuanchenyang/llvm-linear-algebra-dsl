@@ -1,10 +1,11 @@
 #lang racket
 
-(require "nodes.rkt")
 (require racket/pretty)
 (require racket-llvm/unsafe)
-(require "utils.rkt")
-(require "matrix.rkt")
+
+(require fast-math/nodes)
+(require fast-math/utils)
+(require fast-math/matrix)
 (provide (all-defined-out))
 
 (define context (LLVMContextCreate))
@@ -103,7 +104,7 @@
     (LLVMBuildICmp builder operator op1 op2 (gen-unique-name))))
 
 (define (compile-num node context)
-  (LLVMConstInt int-type (num-value node) #f))
+  (LLVMConstInt int-type (num-value node) #t))
 
 (define (compile-array-ref node builder env context)
   (match-let ([(array-reference arr index) node]
@@ -119,7 +120,7 @@
   (cond [(return? node)          (compile-return    node builder env context)]
         [(add? node)             (compile-binop     node builder env context LLVMBuildAdd)]
         [(mul? node)             (compile-binop     node builder env context LLVMBuildMul)]
-        [(lt? node)              (compile-pred      node builder env context 'LLVMIntULT)]
+        [(lt? node)              (compile-pred      node builder env context 'LLVMIntSLT)]
         [(for-node? node)        (compile-for-node  node builder env context)]
         [(assign? node)          (compile-assign    node builder env context)]
         [(num? node)             (compile-num       node context)]
@@ -139,6 +140,7 @@
   (let* ([x (LLVMGetParam func index)]
          [name (param-name param)])
     (LLVMSetValueName x name)
+    (display name)
     (cons name x)))
 
 (define (get-type param)

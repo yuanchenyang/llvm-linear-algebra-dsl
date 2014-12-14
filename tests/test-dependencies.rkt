@@ -1,7 +1,7 @@
 #lang racket
 
 (require rackunit)
-(require "../fast-math/nodes.rkt")
+(require fast-math/nodes)
 
 (define add-func
   (func-decl int "add" (list (param "x" int) (param "y" int))
@@ -22,8 +22,8 @@
 
 (define loop-1-assgn-1 (assign c a))
 (define loop-1-assgn-2 (assign c a))
-(define loop-1-loop-inner (for-node j (num 0) (num 10) (num 1) (list loop-1-assgn-2)))
-(define loop-1-loop-outer (for-node i (num 0) (num 10) (num 1) (list loop-1-loop-inner)))
+(define loop-1-loop-inner (for-node j (num 0) (num 10) (num 1) (list loop-1-assgn-2) '()))
+(define loop-1-loop-outer (for-node i (num 0) (num 10) (num 1) (list loop-1-loop-inner) '()))
 
 (define loop-add
   (func-decl int "loop-add" (list (param "a" int) (param "b" int))
@@ -48,9 +48,9 @@
 (define loop-2-assgn-3 (assign d (add d a)))
 (define loop-2-assgn-4 (assign c (add c d)))
 (define loop-2-loop-2 (for-node j (num 0) (num 10) (num 1)
-                                (list loop-2-assgn-3 loop-2-assgn-4)))
+                                (list loop-2-assgn-3 loop-2-assgn-4) '()))
 (define loop-2-loop-1 (for-node i (num 0) (num 10) (num 1)
-                                (list loop-2-assgn-2 loop-2-loop-2)))
+                                (list loop-2-assgn-2 loop-2-loop-2) '()))
 
 (define loop-accum
   (func-decl
@@ -62,7 +62,7 @@
     (return c))))
 
 (test-begin
-   "Test loop-add dependencies"
-   (define deps (node-dependencies loop-accum))
-   (define expected-deps (list '() (list loop-2-assgn-1)))
-   (check-equal? deps expected-deps))
+ "Test loop-add dependencies"
+ (define deps (node-dependencies loop-accum))
+ (define expected-deps (list '() (list loop-2-assgn-1)))
+ (check-equal? deps expected-deps))
