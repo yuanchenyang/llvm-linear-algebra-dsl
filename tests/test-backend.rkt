@@ -32,11 +32,11 @@
 
 (test-begin
    "Test simple add"
-   (check-eq? (do-math add-func (list 5 2)) 7))
+   (check-eq? ((do-math add-func) 5 2) 7))
 
 (test-begin
    "Test for loop"
-   (check-eq? (do-math loop-add (list 10 10)) 1010))
+   (check-eq? ((do-math loop-add) 10 10) 1010))
 
 
 (define loop-accum
@@ -58,7 +58,7 @@
 
 (test-begin
    "Test loop variable"
-   (check-eq? (do-math loop-accum (list 4 8)) 2204))
+   (check-eq? ((do-math loop-accum) 4 8) 2204))
 
 (define matrix-add
   (func-decl
@@ -85,7 +85,7 @@
 
 (test-begin
    "Test matrix-add"
-   (let ([C (do-math matrix-add (list A B))])
+   (let ([C ((do-math matrix-add) A B)])
      (check-eq? (matrix-ref C 0 0) 3)
      (check-eq? (matrix-ref C 0 1) 5)
      (check-eq? (matrix-ref C 1 0) 9)
