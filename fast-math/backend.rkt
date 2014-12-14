@@ -186,23 +186,22 @@
 
       (LLVMPositionBuilderAtEnd builder entry)
       (define env (make-hash
-        (for/list ([index (in-naturals 0)]
-                   [param params]) 
-          (let ([type (param-type param)])
-            (cond [(= int-ptr type) (process-matrix builder fun param index)]
-                  [(= int type)     (process-int    builder fun param index)]
-                  [else             (error "Unsupport argument type")])))))
+                   (for/list ([index (in-naturals 0)]
+                              [param params]) 
+                     (let ([type (param-type param)])
+                       (cond [(= int-ptr type) (process-matrix builder fun param index)]
+                             [(= int type)     (process-int    builder fun param index)]
+                             [else             (error "Unsupport argument type")])))))
 
       (map (lambda (statement)
-      	   (compile-ast-to-llvm statement builder env context))
-      	 body)
+             (compile-ast-to-llvm statement builder env context))
+           body)
       (define ret-symb (compile-return (block-return (func-decl-body program))
 				       builder env context (func-decl-ret-type program)))
-      (LLVMDumpModule module)
 
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
-       (when err
-         (display err) (exit 1)))
+        (when err
+          (display err) (exit 1)))
       (lambda args
         (define args-and-allocs
           (append args (map (lambda (a)

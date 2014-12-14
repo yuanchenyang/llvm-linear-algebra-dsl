@@ -62,18 +62,19 @@ Special
   (cond [(and (number? a) (number? b))
          (add (num a) (num b))]
         [(and (mat-block? a) (mat-block? b))
-         (let*
-           ([i      (gen-unique-symbol)] [j (gen-unique-symbol)]
-            [target (gen-unique-symbol)]
-            [rows   (matrix-rows a)] [cols  (matrix-cols a)]
-            [nrows  (num rows)]      [ncols (num cols)]
-            [index  (add j (mul nrows i))]
-            [node
-             (for-block i 0 rows 1
-               (for-block j 0 cols 1
-                 (list (assign (array-reference target index)
-                               (add (array-reference (get-mat-id a) index)
-                                    (array-reference (get-mat-id b) index))))))])
+         (let* ([i      (gen-unique-symbol)] [j (gen-unique-symbol)]
+                [target (gen-unique-symbol)]
+                [rows   (matrix-rows a)] [cols  (matrix-cols a)]
+                [nrows  (num rows)]      [ncols (num cols)]
+                [index  (add j (mul ncols i))]
+                [node
+                 (for-block
+                  i 0 rows 1
+                  (for-block
+                   j 0 cols 1
+                   (list (assign (array-reference target index)
+                                 (add (array-reference (get-mat-id a) index)
+                                      (array-reference (get-mat-id b) index))))))])
            (block (append (get-stmts a)
                           (get-stmts b)
                           (list (allocate target mat rows cols))
