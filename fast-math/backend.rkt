@@ -15,8 +15,9 @@
   (LLVMGetBasicBlockParent (LLVMGetInsertBlock builder)))
 
 (define (create-entry-block-alloca func varname)
-  (let ([tmp-builder (LLVMCreateBuilder)])
-    (LLVMPositionBuilderAtEnd tmp-builder (LLVMGetEntryBasicBlock func))
+  (let ([tmp-builder (LLVMCreateBuilder)]
+        [block (LLVMGetEntryBasicBlock func)])
+    (LLVMPositionBuilder tmp-builder block (LLVMGetFirstInstruction block))
     (LLVMBuildAlloca tmp-builder int-type varname)))
 
 (define (compile-assign-symbol node builder env context value)
@@ -58,11 +59,10 @@
          [loop-block-name (string-append "loop" (number->string (gen-unique-num)))]
          [loop-block (LLVMAppendBasicBlockInContext context
                         (builder->function builder) loop-block-name)]
-         [insert-block (LLVMGetInsertBlock builder)]
          [old-val (hash-ref env loop-var-name null)]
          )
     (compile-start-val (for-node-init node) builder env context alloca)
-    ;; Create a new block
+    (LLVMBuildBr builder loop-block)
     (LLVMPositionBuilderAtEnd builder loop-block)
     (hash-set! env loop-var-name alloca)
     (map (lambda (node) (compile-ast-to-llvm node builder env context))
@@ -77,8 +77,6 @@
                         (builder->function builder)
                         (string-append "after" loop-block-name))])
       (LLVMBuildCondBr builder end loop-block after-block)
-      (LLVMPositionBuilderAtEnd builder insert-block)
-      (LLVMBuildBr builder loop-block)
       (LLVMPositionBuilderAtEnd builder after-block))
     (if (not (empty? old-val))
         (hash-set! env loop-var-name old-val)

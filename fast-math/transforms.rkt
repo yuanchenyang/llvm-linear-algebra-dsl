@@ -32,11 +32,12 @@
      (return (symbol "d")))))
 
 (define (replace-symbol-for-node tree replacer)
-  (match-let ([(for-node loopvar start end incr body) tree])
+  (match-let ([(for-node loopvar start end incr body pragmas) tree])
     (for-node (replacer loopvar)
               (replacer start)
               (replacer end)
               (replacer incr)
+              pragmas
               (map replacer body))))
 
 (define (replace-symbol-assign tree replacer)
@@ -66,8 +67,8 @@
   replacer)
 
 (define (fuse loop1 loop2)
-  (match-let* ([(for-node loopvar start end incr body) loop1]
-               [(for-node loopvar2 start2 end2 incr2 body2) loop2]
+  (match-let* ([(for-node loopvar start end incr body pragmas) loop1]
+               [(for-node loopvar2 start2 end2 incr2 body2 pragmas) loop2]
                [body-replaced (map (replace-symbol (symbol-name loopvar) (symbol-name loopvar2)) body)])
     (struct-copy for-node loop2 [body (foldr fuse-loops '() (append body-replaced body2))])))
 

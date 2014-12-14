@@ -113,8 +113,6 @@ Special
                target))
       (error "Invalid type of arguments to convolve!")))
 
-(define (do-math x) x)
-
 (define-syntax define-optimized
   (syntax-rules ()
     [(_ (name ret-type (arg type) ...) body)
@@ -126,8 +124,10 @@ Special
               [ret      (block-return evalb)]
               [blk      (block stmts (return ret))]
               [params   (list (param (symbol->string 'arg) type) ...)]
-              [compiled (do-math (func-decl ret-type sname params blk))])
+              [tree     (func-decl ret-type sname params blk)]
+              [compiled (do-math tree)])
          ;;compiled))]))
+         (pretty-print tree)
          (compiled arg ...)))]))
 
 
@@ -138,6 +138,6 @@ Special
       [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
       [c (make-matrix "c" 10 10)]
       [d (make-constant-matrix "d" '((-1 0 1) (-2 0 2) (-1 0 1)))])
-  (pretty-print (test-add a b))
-  (pretty-print (convolve. c d))
+  (matrix-display (test-add a b))
+  ; (pretty-print (convolve. c d))
   )
