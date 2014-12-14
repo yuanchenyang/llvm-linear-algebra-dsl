@@ -4,6 +4,7 @@
 (require "transforms.rkt")
 (require "matrix.rkt")
 (require "utils.rkt")
+(require "frontend.rkt")
 (require racket/pretty)
 
 (define env
@@ -33,11 +34,15 @@
          [m (symbol "m")]
          [mi (mul i (num 2))])
     (for-unroll env i 2 0 -1
-      (assign (array-reference t ti)
-              (add (num 3)
-                   (array-reference m mi))))))
+      (list (assign (array-reference t ti)
+                    (add (num 3)
+                         (array-reference m mi)))))))
 
 ((constant-fold env) test1)
 ((constant-fold env) test2)
 ((constant-fold env) test3)
 (pretty-print test4)
+
+(let ([c (make-matrix "c" 10 10)]
+      [d (make-constant-matrix "d" '((-1 0 1) (-2 0 2) (-1 0 1)))])
+  (pretty-print (convolve. c d)))

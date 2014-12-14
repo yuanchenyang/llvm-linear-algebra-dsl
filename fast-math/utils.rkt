@@ -16,6 +16,9 @@
 
 (define flatten (lambda (x) (apply append x)))
 
+(define (array-ref-name a)
+  (symbol-name (array-reference-arr a)))
+
 (provide gen-unique-num
          gen-unique-symbol
 	 gen-unique-name

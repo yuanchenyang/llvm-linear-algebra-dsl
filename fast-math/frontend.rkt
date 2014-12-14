@@ -84,7 +84,7 @@ Special
 (define (convolve. a b)
   ;; Convolves two matrices together.
   ;; (Number a) => (Matrix a x1 y1) -> (Matrix a x2 y1) -> (Matrix a x1 y1)
-  (if (and (mat-block? a) (mat-block? b))
+  (if (and (mat-block? a) (matrix? b))
       (let* ([x  (gen-unique-symbol)] [y  (gen-unique-symbol)]
              [xx (gen-unique-symbol)] [yy (gen-unique-symbol)]
              [target (gen-unique-symbol)]
@@ -97,18 +97,18 @@ Special
              ;; x + nxa * y
              [out-index    (add x  (mul y nxa))]
              ;; xx + nxb * yy
-             [kern-index (num (add xx (mul nxb yy)))]
+             [kern-index (add xx (mul nxb yy))]
              [in   (array-reference (get-mat-id a) in-index)]
              [out  (array-reference target out-index)]
              [kern (array-reference (get-mat-id b) kern-index)]
+             [env (make-hash (list (cons (matrix-id b) b)))]
              [node (for-block y pady (- ya pady) 1
                      (for-block x padx (- xa padx) 1
-                       (for-block yy (- pady) (+ pady 1) 1
-                         (for-block xx (- padx) (+ padx 1) 1
+                       (for-unroll env yy (- pady) (+ pady 1) 1
+                         (for-unroll env xx (- padx) (+ padx 1) 1
                            (list (assign out (add out (mul in kern))))))))])
         (block (append
                 (get-stmts a)
-                (get-stmts b)
                 (list (allocate target mat ya xa))
                 node)
                target))
@@ -131,14 +131,20 @@ Special
          (pretty-print tree)
          (compiled arg ...)))]))
 
+(define-optimized (test-add mat (a mat) (b mat))
+  (+. a (+. b a)))
 
- (define-optimized (test-add mat (a mat) (b mat))
-   (+. a (+. b a)))
+(define-optimized (test-convolve mat (a mat) (b mat))
+  (convolve. a b))
 
 (let ([a (make-constant-matrix "a" '((1 2 3) (4 5 6)))]
       [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
-      [c (make-matrix "c" 10 10)]
+      [c (make-constant-matrix "c" '((1 1 1 1 1)
+                                     (1 5 5 5 1)
+                                     (1 5 5 5 1)
+                                     (1 5 5 5 1)
+                                     (1 1 1 1 1)))]
       [d (make-constant-matrix "d" '((-1 0 1) (-2 0 2) (-1 0 1)))])
   (matrix-display (test-add a b))
-  ; (pretty-print (convolve. c d))
+  (matrix-display ( a b))
   )

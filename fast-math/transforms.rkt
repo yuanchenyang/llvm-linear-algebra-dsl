@@ -50,8 +50,10 @@
     ;; TODO: Hack wrap arr in symbol so it's recursively handled
     (let ([a (folder arr)]
           [i (folder index)])
-      (if (and (matrix? a) (matrix-constant? a) (num? i))
-          (num (matrix-ref-index a (num-value i)))
+      (if (matrix? a)
+          (if (and (matrix-constant? a) (num? i))
+              (num (matrix-ref-index a (num-value i)))
+              (array-reference (get-mat-id a) i))
           (array-reference a i)))))
 
 (define (fold-symbol-binop tree op op-fn folder)
@@ -59,8 +61,8 @@
     (let ([a (folder op1)]
           [b (folder op2)])
       (if (and (num? a) (num? b))
-          (num (+ (num-value a) (num-value b)))
-          (add a b)))))
+          (num (op-fn (num-value a) (num-value b)))
+          (op a b)))))
 
 (define (constant-fold env)
   (define (folder tree)
@@ -99,10 +101,11 @@
         [else (error "Unsupported node type")]))
 
 (define (for-unroll env loopvar start end incr body [pragmas '()] )
-  (for/list ([i (in-range start end incr)])
-    (hash-set! env (symbol-name loopvar) (num i))
-    ((constant-fold env)
-     body)))
+  (flatten
+   (for/list ([i (in-range start end incr)])
+     (hash-set! env (symbol-name loopvar) (num i))
+     (map (constant-fold env)
+          body))))
 
 
 
