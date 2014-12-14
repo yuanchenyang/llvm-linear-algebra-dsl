@@ -3,6 +3,8 @@
 (require "nodes.rkt")
 (require racket/pretty)
 
+(provide fusion-pass replace-symbol)
+
 (define tree
   (func-decl
    int-ptr
@@ -30,11 +32,12 @@
      (return (symbol "d")))))
 
 (define (replace-symbol-for-node tree replacer)
-  (match-let ([(for-node loopvar start end incr body) tree])
+  (match-let ([(for-node loopvar start end incr body pragmas) tree])
     (for-node (replacer loopvar)
               (replacer start)
               (replacer end)
               (replacer incr)
+              pragmas
               (map replacer body))))
 
 (define (replace-symbol-assign tree replacer)
@@ -44,7 +47,7 @@
 (define (replace-symbol-array-reference tree replacer)
   (match-let ([(array-reference arr index) tree])
     ;; TODO: Hack wrap arr in symbol so it's recursively handled
-    (array-reference (replacer (symbol arr)) (replacer index))))
+    (array-reference (replacer arr) (replacer index))))
 
 (define (replace-symbol-binop tree op replacer)
   (match-let ([(binop op1 op2) tree])
@@ -64,8 +67,8 @@
   replacer)
 
 (define (fuse loop1 loop2)
-  (match-let* ([(for-node loopvar start end incr body) loop1]
-               [(for-node loopvar2 start2 end2 incr2 body2) loop2]
+  (match-let* ([(for-node loopvar start end incr body pragmas) loop1]
+               [(for-node loopvar2 start2 end2 incr2 body2 pragmas) loop2]
                [body-replaced (map (replace-symbol (symbol-name loopvar) (symbol-name loopvar2)) body)])
     (struct-copy for-node loop2 [body (foldr fuse-loops '() (append body-replaced body2))])))
 
@@ -80,7 +83,7 @@
         [(list? tree) (foldr fuse-loops '() tree)]
         [else (error "Unsupported node type")]))
 
-(provide fusion-pass)
+
 
 ;(pretty-print tree)
 ;(pretty-print (fusion-pass tree))

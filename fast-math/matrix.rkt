@@ -48,7 +48,7 @@
 
 (define (get-mat-id val)
   (if (matrix? val)
-      (matrix-id val)
+      (symbol (matrix-id val))
       (block-return val)))
 
 (define (get-stmts val)

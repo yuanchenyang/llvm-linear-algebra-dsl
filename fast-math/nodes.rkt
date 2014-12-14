@@ -8,7 +8,6 @@
   [node-children node]
   [node-accesses node]
   [node-dependencies node]
-  [node-map fn node]
 )
 
 (define (collect-uniq l)
@@ -29,7 +28,7 @@
   (filter filter-func (sequence->list (stop-before lst before-func))))
 
 (struct for-node
-        (loop-var init end incr body)
+        (loop-var init end incr body pragmas)
         #:transparent
         #:methods gen:node
         [(define/generic super-accesses node-accesses)
@@ -43,6 +42,9 @@
                      (filter-before (lambda (c) (dependent? child c))
                                     (lambda (c) (eq? c child))
                                     (for-node-body node))))
+        [(define (node-children node)
+           (match-let ([(for-node loopvar start end incr body pragmas) node])
+             (append (list loopvar start end incr) body)))
          (define (node-accesses node)
            (let ([children (node-children node)])
              (collect-uniq (map super-accesses children))))])
@@ -127,14 +129,17 @@
 (define int-ptr 0)
 (define mat int-ptr)
 (define int 1)
+(define pragma-ignore-loop-deps 2)
 
-(define (for-loop loopvar start end incr body)
-  (for-node (if (symbol? loopvar) loopvar (symbol loopvar))
-            (num start)
-            (num end)
-            (num incr)
-            body))
+(define (for-loop loopvar start end incr body [pragmas '()])
+  (for-node
+   (if (symbol? loopvar) loopvar (symbol loopvar))
+   (num start)
+   (num end)
+   (num incr)
+   body
+   pragmas))
 
 ;; A for loop wrapped in a list, basically a block without any return statementss
-(define (for-block loopvar start end incr body)
-  (list (for-loop loopvar start end incr body)))
+(define (for-block loopvar start end incr body [pragmas '()])
+  (list (for-loop loopvar start end incr body pragmas)))

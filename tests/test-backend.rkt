@@ -1,7 +1,6 @@
 #lang racket
 
 (require rackunit)
-(require "../fast-math/frontend.rkt")
 (require "../fast-math/backend.rkt")
 (require "../fast-math/nodes.rkt")
 (require "../fast-math/matrix.rkt")
@@ -24,19 +23,19 @@
    (list (param "a" int) (param "b" int))
    (block
     (list
-     (assign c a)
      (for-node i (num 0) (num 10) (num 1)
-              (list (for-node j (num 0) (num 10) (num 1)
-                              (list (assign c (add c a)))))))
+               (for-block j 0 10 1
+                          (list (assign c (add c a))))
+               (list pragma-ignore-loop-deps)))
     (return c))))
 
 (test-begin
    "Test simple add"
-   (check-eq? (do-math add-func (list 5 2)) 7))
+   (check-eq? ((do-math add-func) 5 2) 7))
 
 (test-begin
    "Test for loop"
-   (check-eq? (do-math loop-add (list 10 10)) 1010))
+   (check-eq? ((do-math loop-add) 10 10) 1010))
 
 
 (define loop-accum
@@ -53,12 +52,14 @@
 		(for-node j (num 0) (num 10) (num 1)
 			  (list
 			   (assign d (add d a))
-			   (assign c (add c d)))))))
+			   (assign c (add c d)))
+                          (list pragma-ignore-loop-deps)))
+               (list pragma-ignore-loop-deps)))
     (return c))))
 
 (test-begin
    "Test loop variable"
-   (check-eq? (do-math loop-accum (list 4 8)) 2204))
+   (check-eq? ((do-math loop-accum) 4 8) 2204))
 
 (define matrix-add
   (func-decl
@@ -69,23 +70,25 @@
     (list
      (allocate (symbol "c") int-ptr 2 2)
      (for-node (symbol "u1") (num 0) (num 2) (num 1)
-      (list
-	(for-node (symbol "u2") (num 0) (num 2) (num 1)
+	(for-block (symbol "u2") 0 2 1
 	 (list
 	   (assign
-	    (array-reference  "c" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+	    (array-reference  (symbol "c") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
 	    (add
-	     (array-reference "b" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
-	     (array-reference "a" (add (symbol "u2") (mul (num 2) (symbol "u1")))))))))))
+	     (array-reference (symbol "b") (add (symbol "u2") (mul (num 2) (symbol "u1"))))
+	     (array-reference (symbol "a") (add (symbol "u2")
+                                                (mul (num 2) (symbol "u1")))))))
+         (list pragma-ignore-loop-deps))
+        (list pragma-ignore-loop-deps)))
     (return (symbol "c")))))
 
 
-(define A (make-constant-matrix (list (list 1 3) (list 4 7))))
-(define B (make-constant-matrix (list (list 2 2) (list 5 6))))
+(define A (make-constant-matrix "B" (list (list 1 3) (list 4 7))))
+(define B (make-constant-matrix "C" (list (list 2 2) (list 5 6))))
 
 (test-begin
    "Test matrix-add"
-   (let ([C (do-math matrix-add (list A B))])
+   (let ([C ((do-math matrix-add) A B)])
      (check-eq? (matrix-ref C 0 0) 3)
      (check-eq? (matrix-ref C 0 1) 5)
      (check-eq? (matrix-ref C 1 0) 9)
