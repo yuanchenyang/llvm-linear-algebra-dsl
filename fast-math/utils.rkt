@@ -11,7 +11,7 @@
 (define (gen-unique-symbol)
   (symbol (string-append "u" (number->string (gen-unique-num)))))
 
-(define flatten (lambda x (apply append x)))
+(define flatten (lambda (x) (apply append x)))
 
 (provide gen-unique-num
          gen-unique-symbol

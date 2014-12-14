@@ -7,6 +7,7 @@
 (define-generics node
   [node-children node]
   [node-dependencies node]
+  [node-map fn node]
 )
 
 (struct for-node
@@ -15,7 +16,9 @@
         #:methods gen:node
         [(define (node-children node)
            (match-let ([(for-node loopvar start end incr body) node])
-             (append (list loopvar start end incr) body)))])
+             (append (list loopvar start end incr) body)))
+         (define (node-map fn node)
+           (map (lambda (n) (node-map fn n)) (node-children node)))])
 (struct assign
         (target value)
         #:transparent
@@ -56,8 +59,6 @@
 (struct return    (target)           #:transparent)
 (struct block     (stmts return)     #:transparent)
 (struct param     (name type)        #:transparent)
-
-
 
 (define int-ptr 0)
 (define mat int-ptr)

@@ -73,7 +73,7 @@ Special
                  (list (assign (array-reference target index)
                                (add (array-reference (get-mat-id a) index)
                                     (array-reference (get-mat-id b) index))))))])
-           (block (flatten (get-stmts a) (get-stmts b) node)
+           (block (append (get-stmts a) (get-stmts b) node)
                   target))]
         [else (error "Invalid type of arguments to add!")]))
 
@@ -101,7 +101,7 @@ Special
                        (for-block yy (- pady) (+ pady 1) 1
                          (for-block xx (- padx) (+ padx 1) 1
                            (list (assign out (add out (mul in kern))))))))])
-        (block (flatten (get-stmts a) (get-stmts b) node)
+        (block (append (get-stmts a) (get-stmts b) node)
                target))
       (error "Invalid type of arguments to convolve!")))
 

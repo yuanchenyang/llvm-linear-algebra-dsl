@@ -54,10 +54,13 @@
       '()
       (block-stmts val)))
 
-(define (make-constant-matrix lst)
+(define (make-constant-matrix name lst)
   (let* ([rows (length lst)]
          [cols (length (car lst))]
-         [mat  (make-matrix "const" rows cols)])
-    (set-matrix-constant?! mat #t)
-    (matrix-load! mat lst)
+         [mat  (make-matrix name rows cols)])
+    (for ([row lst]
+          [y   (in-naturals 0)])
+      (for ([val row]
+            [x   (in-naturals 0)])
+        (matrix-set! mat y x val)))
     mat))
