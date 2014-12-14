@@ -80,8 +80,8 @@
     (return (symbol "c")))))
 
 
-(define A (make-constant-matrix (list (list 1 3) (list 4 7))))
-(define B (make-constant-matrix (list (list 2 2) (list 5 6))))
+(define A (make-constant-matrix "B" (list (list 1 3) (list 4 7))))
+(define B (make-constant-matrix "C" (list (list 2 2) (list 5 6))))
 
 (test-begin
    "Test matrix-add"
