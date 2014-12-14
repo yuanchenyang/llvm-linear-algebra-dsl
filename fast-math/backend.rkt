@@ -4,7 +4,6 @@
 (require racket/pretty)
 (require racket-llvm/unsafe)
 (require "utils.rkt")
-(require "frontend.rkt")
 (require "matrix.rkt")
 (provide (all-defined-out))
 
