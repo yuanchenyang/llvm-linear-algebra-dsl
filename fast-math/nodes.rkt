@@ -55,10 +55,13 @@
         [(define (node-children node)
            (match-let ([(symbol name) node])
              (list name)))])
-(struct func-decl (name params body) #:transparent)
-(struct return    (target)           #:transparent)
-(struct block     (stmts return)     #:transparent)
-(struct param     (name type)        #:transparent)
+
+(struct func-decl (ret-type name params body)      #:transparent)
+(struct return    (target)                         #:transparent)
+(struct block     (stmts return)                   #:transparent)
+(struct param     (name type)                      #:transparent)
+(struct allocate  (target type rows cols)          #:transparent)
+
 
 (define int-ptr 0)
 (define mat int-ptr)

@@ -5,6 +5,7 @@
 
 (define tree
   (func-decl
+   int-ptr
    "func1"
    (list (param "a" int-ptr) (param "b" int-ptr) (param "c" int-ptr) (param "d" int-ptr))
    (list
