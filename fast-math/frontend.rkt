@@ -53,36 +53,42 @@ Special
 (require fast-math/transforms)
 (require fast-math/backend)
 
-(provide +. convolve. define-optimized)
+(provide +. -. *. /.  convolve. define-optimized)
 
-(define (+. a b)
-  ;; Adds two values together, the following types are supported:
-  ;; (Number a) => (Matrix a x y) -> (Matrix a x y) -> (Matrix a x y)
-  ;; (Number a) => a -> a -> a
-  (cond [(and (number? a) (number? b))
-         (add (num a) (num b))]
-        [(and (mat-block? a) (mat-block? b))
-         (let* ([i      (gen-unique-symbol)] [j (gen-unique-symbol)]
-                [target (gen-unique-symbol)]
-                [rows   (matrix-rows a)] [cols  (matrix-cols a)]
-                [nrows  (num rows)]      [ncols (num cols)]
-                [index  (add j (mul ncols i))]
-                [node
-                 (for-block
-                  i 0 rows 1
-                  (for-block
-                   j 0 cols 1
-                   (list (assign (array-reference target index)
-                                 (add (array-reference (get-mat-id a) index)
-                                      (array-reference (get-mat-id b) index))))
-                   (list pragma-ignore-loop-deps))
-                  (list pragma-ignore-loop-deps))])
-           (block (append (get-stmts a)
-                          (get-stmts b)
-                          (list (allocate target mat rows cols))
-                          node)
-                  target))]
-        [else (error "Invalid type of arguments to add!")]))
+(define (binop-factory op)
+  (lambda (a b)
+    ;; Adds two values together, the following types are supported:
+    ;; (Number a) => (Matrix a x y) -> (Matrix a x y) -> (Matrix a x y)
+    ;; (Number a) => a -> a -> a
+    (cond [(and (number? a) (number? b))
+           (op (num a) (num b))]
+          [(and (mat-block? a) (mat-block? b))
+           (let* ([i      (gen-unique-symbol)] [j (gen-unique-symbol)]
+                  [target (gen-unique-symbol)]
+                  [rows   (matrix-rows a)] [cols  (matrix-cols a)]
+                  [nrows  (num rows)]      [ncols (num cols)]
+                  [index  (add j (mul ncols i))]
+                  [node
+                   (for-block
+                    i 0 rows 1
+                    (for-block
+                     j 0 cols 1
+                     (list (assign (array-reference target index)
+                                   (op (array-reference (get-mat-id a) index)
+                                       (array-reference (get-mat-id b) index))))
+                     (list pragma-ignore-loop-deps))
+                    (list pragma-ignore-loop-deps))])
+             (block (append (get-stmts a)
+                            (get-stmts b)
+                            (list (allocate target mat rows cols))
+                            node)
+                    target))]
+          [else (error "Invalid type of arguments to binop!")])))
+
+(define +. (binop-factory add))
+(define -. (binop-factory sub))
+(define *. (binop-factory mul))
+(define /. (binop-factory div))
 
 (define (convolve. a b)
   ;; Convolves two matrices together.
@@ -128,7 +134,8 @@ Special
               [stmts    (block-stmts  evalb)]
               [ret      (block-return evalb)]
               [blk      (block stmts (return ret))]
-              [params   (list (param (symbol->string 'arg) type) ...)]
+              [params   (list (param (if (matrix? arg) (matrix-id arg)
+                                         (symbol->string 'arg)) type) ...)]
               [tree     (mem-to-reg
                          (fusion-pass
                           (loop-compression

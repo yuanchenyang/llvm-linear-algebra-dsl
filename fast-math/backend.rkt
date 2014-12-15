@@ -100,9 +100,11 @@
          [operator (if (equal? op1-type float-type)
                        (cond [(add? node) LLVMBuildFAdd]
                              [(mul? node) LLVMBuildFMul]
+                             [(sub? node) LLVMBuildFSub]
                              [else (error "Unsupported binop")])
                        (cond [(add? node) LLVMBuildAdd]
                              [(mul? node) LLVMBuildMul]
+                             [(sub? node) LLVMBuildSub]
                              [else (error "Unsupported binop")]))])
     (operator builder op1 op2 (gen-unique-name))))
 

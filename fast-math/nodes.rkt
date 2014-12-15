@@ -81,6 +81,10 @@
 
 (struct mul binop () #:transparent)
 
+(struct sub binop () #:transparent)
+
+(struct div binop () #:transparent)
+
 (struct lt binop  () #:transparent)
 
 (struct array-reference
