@@ -129,7 +129,6 @@
   (let* ([func-body (func-decl-body func)]
          [statements (block-stmts func-body)]
          [dependencies (node-dependencies func)])
-    (display dependencies)
     (struct-copy func-decl func
                  [body (block (for/fold ([so-far '()])
                                   ([index (in-naturals 0)]

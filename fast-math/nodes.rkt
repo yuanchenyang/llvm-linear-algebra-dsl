@@ -1,7 +1,6 @@
 #lang racket
 
 (require racket/generic)
-(require racket/pretty)
 
 (provide
  (except-out
@@ -24,10 +23,6 @@
 (define (dependent? node-after node-before)
   (match-let ([(list reads-after writes-after) (node-accesses node-after)]
               [(list reads-before writes-before) (node-accesses node-before)])
-    (pretty-print writes-before)
-    (pretty-print reads-after)
-    (pretty-print (any-a-in-b reads-after writes-before))
-    (pretty-print "-------")
     (or (any-a-in-b reads-after writes-before)
         (any-a-in-b writes-after reads-before)
         (any-a-in-b writes-after writes-before))))
@@ -65,9 +60,9 @@
    (define (node-accesses node)
      (match-let* ([(assign target value) node]
                   [(list reads writes) (super-accesses value)])
-                 (set-add! writes (if (array-reference? target)
-                                      (array-reference-arr target)
-                                      target))
+                 (set-add! writes (symbol-name (if (array-reference? target)
+                                                   (array-reference-arr target)
+                                                   target)))
                  (list reads writes)))])
 
 (struct binop
@@ -100,7 +95,7 @@
      (match-let* ([(array-reference arr index) node]
                   [children (node-children node)]
                   [(list reads writes) (collect-uniq (map super-accesses children))])
-                 (set-add! reads arr)
+                 (set-add! reads (symbol-name arr))
                  (list reads writes)))])
 
 (struct num

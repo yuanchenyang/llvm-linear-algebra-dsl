@@ -34,8 +34,12 @@
                [live-ins (set-union gen (set-subtract live-outs kill))])
               (cons (cons (struct-copy basic-block curr [live-outs live-outs]
                                        [live-ins live-ins]) bbs) (set-union live-ins live-outs))))
-(define (liveness-analyze func-decl)
-  (car (foldr do-liveness-analysis (cons '() (set)) (block-stmts (func-decl-body func-decl)))))
+(define (liveness-analyze func)
+  (struct-copy
+   func-decl
+   func [body (block
+               (car (foldr do-liveness-analysis (cons '() (set))
+                           (block-stmts (func-decl-body func)))) '())]))
 
 (define (build-gen tree)
   (foldl (lambda (curr gen-kill-assigned)
