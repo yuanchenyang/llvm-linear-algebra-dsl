@@ -38,8 +38,7 @@
                                                                (mul (num 2) (symbol "y1"))))))) '())) '())
     (return (symbol "d")))))
 
-(define bb_list (build-basic-blocks (func-decl-body tree)))
-(define liveness (foldr liveness-analyze (set) bb_list))
+(define bb_list (liveness-analyze (build-basic-blocks (func-decl-body tree))))
 
 (require racket/pretty)
 (pretty-print bb_list)

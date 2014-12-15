@@ -82,47 +82,53 @@
 (struct lt binop  () #:transparent)
 
 (struct array-reference
-        (arr index)
-        #:transparent
-        #:methods gen:node
-        [(define/generic super-accesses node-accesses)
-         (define (node-children node)
-           (match-let ([(array-reference arr index) node])
-             (list arr index)))
-         (define (node-accesses node)
-           (match-let* ([(array-reference arr index) node]
-                        [children (node-children node)]
-                        [(list reads writes) (collect-uniq (map super-accesses children))])
-             (set-add! reads arr)
-             (list reads writes)))])
+  (arr index)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-children node)
+     (match-let ([(array-reference arr index) node])
+       (list arr index)))
+   (define (node-accesses node)
+     (match-let* ([(array-reference arr index) node]
+                  [children (node-children node)]
+                  [(list reads writes) (collect-uniq (map super-accesses children))])
+                 (set-add! reads arr)
+                 (list reads writes)))])
 
 (struct num
-        (value)
-        #:transparent
-        #:methods gen:node
-        [(define (node-children node) '())
-         (define (node-accesses node) (list (mutable-set) (mutable-set)))])
+  (value)
+  #:transparent
+  #:methods gen:node
+  [(define (node-children node) '())
+   (define (node-accesses node) (list (mutable-set) (mutable-set)))])
 
 (struct symbol
-        (name)
-        #:transparent
-        #:methods gen:node
-        [(define (node-children node)
-           (list (symbol-name node)))
-         (define (node-accesses node)
-           (list (mutable-set (symbol-name node)) (mutable-set)))])
+  (name)
+  #:transparent
+  #:methods gen:node
+  [(define (node-children node)
+     (list (symbol-name node)))
+   (define (node-accesses node)
+     (list (mutable-set (symbol-name node)) (mutable-set)))])
 
 (struct func-decl
-        (ret-type name params body)
+  (ret-type name params body)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-dependencies node)
+     (for/list ([child (block-stmts (func-decl-body node))])
+       (filter-before (lambda (c) (dependent? child c))
+                      (lambda (c) (eq? c child))
+                      (block-stmts (func-decl-body node)))))])
+
+(struct return    (target)
         #:transparent
         #:methods gen:node
         [(define/generic super-accesses node-accesses)
-         (define (node-dependencies node)
-          (for/list ([child (block-stmts (func-decl-body node))])
-                    (filter-before (lambda (c) (dependent? child c))
-                                   (lambda (c) (eq? c child))
-                                   (block-stmts (func-decl-body node)))))])
-(struct return    (target)                         #:transparent)
+         (define (node-children node) (return-target node))
+         (define (node-accesses node) (super-accesses (return-target node)))])
 (struct block     (stmts return)                   #:transparent)
 (struct param     (name type)                      #:transparent)
 (struct allocate  (target type rows cols)          #:transparent)
