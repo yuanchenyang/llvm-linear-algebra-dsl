@@ -11,26 +11,29 @@
 (define-optimized (test-convolve mat (a mat) (b mat))
   (convolve. a b))
 
-(let ([c (make-constant-matrix "a" '((1 1 1 1 1)
-                                     (1 5 5 5 1)
-                                     (1 5 5 5 1)
-                                     (1 5 5 5 1)
-                                     (1 1 1 1 1)))]
-      [d (make-constant-matrix "b" '((0 1 2) (3 4 5) (6 7 8)))])
-  (matrix-display (test-convolve c d)))
+;; (let ([c (make-constant-matrix "a" '((1.0 1.0 1.0 1.0 1.0)
+;;                                      (1.0 5.0 5.0 5.0 1.0)
+;;                                      (1.0 5.0 5.0 5.0 1.0)
+;;                                      (1.0 5.0 5.0 5.0 1.0)
+;;                                      (1.0 1.0 1.0 1.0 1.0)))]
+;;       [d (make-constant-matrix "b" '((0.0 1.0 2.0)
+;;                                      (3.0 4.0 5.0)
+;;                                      (6.0 7.0 8.0)))])
+;;   (matrix-display (test-convolve c d)))
 
 (require rackunit)
+
 (define frontend-tests
   (test-suite
    "Frontend tests"
    (test-case
     "Test add"
-    (let* ([a (make-constant-matrix "a" '((1 2 3) (4 5 6)))]
-           [b (make-constant-matrix "b" '((7 8 9) (10 11 12)))]
+    (let* ([a (make-constant-matrix "a" '((1.0 2.0 3.0) (4.0 5.0 6.0)))]
+           [b (make-constant-matrix "b" '((7.0 8.0 9.0) (10.0 11.0 12.0)))]
            [actual (test-add a b)])
-      (check-eq? (matrix-ref actual 0 0) 9)
-      (check-eq? (matrix-ref actual 0 1) 12)
-      (check-eq? (matrix-ref actual 0 2) 15)
-      (check-eq? (matrix-ref actual 1 0) 18)
-      (check-eq? (matrix-ref actual 1 1) 21)
-      (check-eq? (matrix-ref actual 1 2) 24)))))
+      (check-equal? (matrix-ref actual 0 0) 9.0)
+      (check-equal? (matrix-ref actual 0 1) 12.0)
+      (check-equal? (matrix-ref actual 0 2) 15.0)
+      (check-equal? (matrix-ref actual 1 0) 18.0)
+      (check-equal? (matrix-ref actual 1 1) 21.0)
+      (check-equal? (matrix-ref actual 1 2) 24.0)))))

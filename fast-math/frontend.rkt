@@ -135,5 +135,4 @@ Special
                            (func-decl ret-type sname params blk))))]
               [compiled (do-math tree)])
          ;;compiled))]))
-         (pretty-print tree)
          (compiled arg ...)))]))

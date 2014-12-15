@@ -72,8 +72,8 @@
                (list pragma-ignore-loop-deps)))
     (return (symbol "c")))))
 
-(define A (make-constant-matrix "B" (list (list 1 3) (list 4 7))))
-(define B (make-constant-matrix "C" (list (list 2 2) (list 5 6))))
+(define A (make-constant-matrix "B" (list (list 1.0 3.0) (list 4.0 7.0))))
+(define B (make-constant-matrix "C" (list (list 2.0 2.0) (list 5.0 6.0))))
 
 (define backend-tests
   (test-suite
@@ -93,7 +93,7 @@
    (test-case
     "Test matrix-add"
     (let ([C ((do-math matrix-add) A B)])
-      (check-eq? (matrix-ref C 0 0) 3)
-      (check-eq? (matrix-ref C 0 1) 5)
-      (check-eq? (matrix-ref C 1 0) 9)
-      (check-eq? (matrix-ref C 1 1) 13)))))
+      (check-equal? (matrix-ref C 0 0) 3.0)
+      (check-equal? (matrix-ref C 0 1) 5.0)
+      (check-equal? (matrix-ref C 1 0) 9.0)
+      (check-equal? (matrix-ref C 1 1) 13.0)))))

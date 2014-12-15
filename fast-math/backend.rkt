@@ -10,6 +10,7 @@
 
 (define context (LLVMContextCreate))
 (define int-type (LLVMInt32TypeInContext context))
+(define float-type (LLVMFloatTypeInContext context))
 (define bool-type (LLVMInt1TypeInContext context))
 
 (define (builder->function builder)
@@ -25,7 +26,7 @@
   (let* ([target-name (symbol-name (assign-target node))]
          [var (hash-ref env target-name null)])
     (if (not (null? var)) (LLVMBuildStore builder value var)
-        (let ([alloca (LLVMBuildAlloca builder int-type target-name)])
+        (let ([alloca (LLVMBuildAlloca builder (LLVMTypeOf value) target-name)])
           (hash-set! env target-name alloca)
           (LLVMBuildStore builder value alloca)))))
 
@@ -92,9 +93,17 @@
 	(symbol-name target)
 	null)))
 
-(define (compile-binop node builder env context operator)
-  (let ([op1 (compile-ast-to-llvm (binop-op1 node) builder env context)]
-        [op2 (compile-ast-to-llvm (binop-op2 node) builder env context)])
+(define (compile-binop node builder env context)
+  (let* ([op1 (compile-ast-to-llvm (binop-op1 node) builder env context)]
+         [op2 (compile-ast-to-llvm (binop-op2 node) builder env context)]
+         [op1-type (LLVMTypeOf op1)]
+         [operator (if (equal? op1-type float-type)
+                       (cond [(add? node) LLVMBuildFAdd]
+                             [(mul? node) LLVMBuildFMul]
+                             [else (error "Unsupported binop")])
+                       (cond [(add? node) LLVMBuildAdd]
+                             [(mul? node) LLVMBuildMul]
+                             [else (error "Unsupported binop")]))])
     (operator builder op1 op2 (gen-unique-name))))
 
 (define (compile-pred node builder env context operator)
@@ -103,13 +112,16 @@
     (LLVMBuildICmp builder operator op1 op2 (gen-unique-name))))
 
 (define (compile-num node context)
-  (LLVMConstInt int-type (num-value node) #t))
+  (let ([value (num-value node)])
+    (if (flonum? value)
+        (LLVMConstReal float-type value)
+        (LLVMConstInt int-type value #t))))
 
 (define (compile-array-ref node builder env context)
   (match-let ([(array-reference arr index) node]
               [name (gen-unique-name)])
     (define ptr (LLVMBuildGEP builder (hash-ref env (symbol-name arr))
-                  (list (compile-ast-to-llvm index builder env context)) name))
+                              (list (compile-ast-to-llvm index builder env context)) name))
     (LLVMBuildLoad builder ptr name)))
 
 (define (compile-symbol node builder env context)
@@ -117,9 +129,8 @@
 
 (define (compile-ast-to-llvm node builder env context)
   (cond [(return? node)          (compile-return    node builder env context)]
-        [(add? node)             (compile-binop     node builder env context LLVMBuildAdd)]
-        [(mul? node)             (compile-binop     node builder env context LLVMBuildMul)]
         [(lt? node)              (compile-pred      node builder env context 'LLVMIntSLT)]
+        [(binop? node)           (compile-binop     node builder env context)]
         [(for-node? node)        (compile-for-node  node builder env context)]
         [(assign? node)          (compile-assign    node builder env context)]
         [(num? node)             (compile-num       node context)]
@@ -143,12 +154,12 @@
     (cons name x)))
 
 (define (get-type param)
-  (cond [(= int-ptr (param-type param)) (LLVMPointerType int-type 0)]
+  (cond [(= int-ptr (param-type param)) (LLVMPointerType float-type 0)]
         [(= int (param-type param)) int-type]
         [else (error "Unsupported arg type")]))
 
 (define (convert-type type)
-  (cond [(= int-ptr type) (LLVMPointerType int-type 0)]
+  (cond [(= int-ptr type) (LLVMPointerType float-type 0)]
 	[(= int type) int-type]))
 
 (define (split pred list)
@@ -178,8 +189,8 @@
             [else             (error "Unsupport argument type")]))))
 
 (define (build-matrix-from-alloc alloc)
-  (make-matrix (symbol-name (allocate-target alloc))
-               (allocate-rows alloc) (allocate-cols alloc)))
+  (make-zero-matrix (symbol-name (allocate-target alloc))
+                    (allocate-rows alloc) (allocate-cols alloc)))
 
 (define (get-return-matrix output args-and-allocs ret-symb)
   (let ([ptr (LLVMGenericValueToPointer output)]
