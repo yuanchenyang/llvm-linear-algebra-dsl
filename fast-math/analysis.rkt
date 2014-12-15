@@ -16,7 +16,8 @@
 
 (define (build-basic-blocks body)
   (let ([bbs (foldr bb-builder (list '()) body)])
-    (flatten (cons (basic-block (car bbs)) (cdr bbs)))))
+    (filter (lambda (bb) (pair? (basic-block-statements bb)))
+            (flatten (cons (basic-block (car bbs)) (cdr bbs))))))
 
 (define (liveness-analyze curr live-outs)
   (let ([gen (build-gen curr)])
