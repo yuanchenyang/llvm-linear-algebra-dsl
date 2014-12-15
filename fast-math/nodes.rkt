@@ -135,7 +135,12 @@
 
 (struct block     (stmts return)                   #:transparent)
 (struct param     (name type)                      #:transparent)
-(struct allocate  (target type rows cols)          #:transparent)
+(struct allocate
+  (target type rows cols)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-accesses node) (super-accesses (allocate-target node)))])
 
 
 (define int-ptr 0)

@@ -74,7 +74,9 @@ Special
                    j 0 cols 1
                    (list (assign (array-reference target index)
                                  (add (array-reference (get-mat-id a) index)
-                                      (array-reference (get-mat-id b) index))))))])
+                                      (array-reference (get-mat-id b) index))))
+                   (list pragma-ignore-loop-deps))
+                  (list pragma-ignore-loop-deps))])
            (block (append (get-stmts a)
                           (get-stmts b)
                           (list (allocate target mat rows cols))
@@ -127,7 +129,7 @@ Special
               [ret      (block-return evalb)]
               [blk      (block stmts (return ret))]
               [params   (list (param (symbol->string 'arg) type) ...)]
-              [tree     (fusion-pass (func-decl ret-type sname params blk))]
+              [tree     (fusion-pass (loop-compression (func-decl ret-type sname params blk)))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (pretty-print tree)
