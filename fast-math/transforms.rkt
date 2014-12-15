@@ -2,34 +2,14 @@
 
 (require fast-math/nodes)
 (require fast-math/matrix)
+(require fast-math/analysis)
+(require fast-math/utils)
 
-(provide fusion-pass constant-fold for-unroll loop-compression)
-
-(define tree
-  (func-decl
-   int-ptr
-   "func1"
-   (list (param "a" int-ptr) (param "b" int-ptr) (param "c" int-ptr) (param "d" int-ptr))
-   (list
-     (for-loop "u1" 0 2 1
-       (list
-         (for-loop "u2" 0 2 1
-          (list
-            (assign
-             (array-reference  "c" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
-             (add
-              (array-reference "b" (add (symbol "u2") (mul (num 2) (symbol "u1"))))
-              (array-reference "a" (add (symbol "u2") (mul (num 2) (symbol "u1"))))))))))
-     (for-loop "y1" 0 2 1
-       (list
-         (for-loop "y2" 0 2 1
-          (list
-            (assign
-             (array-reference  "d" (add (symbol "y2") (mul (num 2) (symbol "y1"))))
-             (add
-              (array-reference "c" (add (symbol "y2") (mul (num 2) (symbol "y1"))))
-              (array-reference "a" (add (symbol "y2") (mul (num 2) (symbol "y1"))))))))))
-     (return (symbol "d")))))
+(provide fusion-pass
+         constant-fold
+         for-unroll
+         loop-compression
+         mem-to-reg)
 
 (define (fold-symbol-for-node tree folder)
   (match-let ([(for-node loopvar start end incr body pragmas) tree])
@@ -138,6 +118,46 @@
                                                            (take-right dependencies index) so-far)
                                     (cons curr so-far))) (block-return func-body))])))
 
+(define (do-mem-to-reg live-ins live-outs seen)
+  (define (doer statement)
+    (cond [(array-reference? statement)
+           (let* ([arr-name (symbol-name (array-reference-arr statement))])
+             (if (and (not (set-member? live-ins arr-name))
+                      (not (set-member? live-outs arr-name)))
+                 (let* ([symbol (hash-ref! seen arr-name #f)]
+                        [name (if symbol symbol
+                                  (begin
+                                    (let ([symbol (gen-unique-symbol)])
+                                      (hash-set! seen arr-name symbol)
+                                      symbol)))])
+                   name)
+                 statement))]
+          [(for-node? statement) (struct-copy
+                                  for-node statement [body (map doer (for-node-body statement))])]
+          [(assign? statement)
+           (match-let ([(assign target value) statement])
+             (struct-copy
+              assign statement [target (doer target)] [value (doer value)]))]
+          [(add? statement)
+           (match-let ([(add op1 op2) statement])
+             (add (doer op1) (doer op2)))]
+          [(mul? statement)
+           (match-let ([(mul op1 op2) statement])
+             (mul (doer op1) (doer op2)))]
+          [else statement]))
+  doer)
 
-;(pretty-print tree)
-;(pretty-print (fusion-pass tree))
+(define (mem-to-reg-pass bb)
+  (match-let ([(basic-block statements live-ins live-outs) bb])
+    (map (do-mem-to-reg live-ins live-outs (make-hash)) statements)))
+
+(define (mem-to-reg func)
+  (let* ([analyzed (liveness-analyze (build-basic-blocks func))]
+         [basic-blocks (block-stmts (func-decl-body analyzed))]
+         [promoted (flatten (map mem-to-reg-pass basic-blocks))]
+         [ret (last promoted)]
+         [stmts (drop-right promoted 1)])
+    (struct-copy func-decl func [body (block stmts ret)])))
+
+                                        ;(pretty-print tree)
+                                        ;(pretty-print (fusion-pass tree))

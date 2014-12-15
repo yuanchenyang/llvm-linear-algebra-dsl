@@ -50,4 +50,4 @@
 
 (require racket/pretty)
 ;; (pretty-print (liveness-analyze (build-basic-blocks (fusion-pass (loop-compression tree)))))
-(pretty-print (liveness-analyze (build-basic-blocks (fusion-pass (loop-compression tree)))))
+(pretty-print (mem-to-reg (fusion-pass (loop-compression tree))))

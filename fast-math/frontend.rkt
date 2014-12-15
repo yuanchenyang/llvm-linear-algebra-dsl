@@ -129,7 +129,10 @@ Special
               [ret      (block-return evalb)]
               [blk      (block stmts (return ret))]
               [params   (list (param (symbol->string 'arg) type) ...)]
-              [tree     (fusion-pass (loop-compression (func-decl ret-type sname params blk)))]
+              [tree     (mem-to-reg
+                         (fusion-pass
+                          (loop-compression
+                           (func-decl ret-type sname params blk))))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (pretty-print tree)
