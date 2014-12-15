@@ -3,7 +3,7 @@
 (require fast-math/nodes)
 (require fast-math/matrix)
 
-(provide fusion-pass constant-fold for-unroll)
+(provide fusion-pass constant-fold for-unroll loop-compression)
 
 (define tree
   (func-decl
@@ -37,8 +37,8 @@
               (folder start)
               (folder end)
               (folder incr)
-              pragmas
-              (map folder body))))
+              (map folder body)
+              pragmas)))
 
 (define (fold-symbol-assign tree folder)
   (match-let ([(assign target value) tree])
@@ -80,24 +80,38 @@
   folder)
 
 (define (fuse loop1 loop2)
-  (match-let* ([(for-node loopvar start end incr body pragmas) loop1]
-               [(for-node loopvar2 start2 end2 incr2 body2 pragmas) loop2]
-               [body-folded
-                (map (constant-fold
-                      (make-hash (list (cons (symbol-name loopvar) loopvar2))))
-                     body)])
-    (struct-copy for-node loop2 [body (foldr fuse-loops '() (append body-folded body2))])))
+  (match-let*
+   ([(for-node loopvar start end incr body pragmas) loop1]
+    [(for-node loopvar2 start2 end2 incr2 body2 pragmas) loop2]
+    [body-folded
+     (map (constant-fold
+           (make-hash (list (cons (symbol-name loopvar) loopvar2))))
+          body)])
+   (struct-copy for-node loop2 [body (foldr fuse-loops '() (append body-folded body2))])))
+
+(define (fusable? prev next)
+  (and (for-node? prev) (for-node? next)
+       (= (num-value (for-node-init prev)) (num-value (for-node-init next)))
+       (= (num-value (for-node-end prev)) (num-value (for-node-end next)))
+       (= (num-value (for-node-incr prev)) (num-value (for-node-incr next)))
+       (member pragma-ignore-loop-deps (for-node-pragmas prev))
+       (member pragma-ignore-loop-deps (for-node-pragmas next))))
 
 (define (fuse-loops prev result)
   (cond [(null? result) (list prev)]
-        [(and (for-node? prev) (for-node? (car result)))
+        [(fusable? prev (car result))
          (cons (fuse prev (car result)) (cdr result))]
         [else (cons prev result)]))
 
 (define (fusion-pass tree)
-  (cond [(func-decl? tree) (struct-copy func-decl tree [body (fusion-pass (func-decl-body tree))])]
-        [(list? tree) (foldr fuse-loops '() tree)]
-        [else (error "Unsupported node type")]))
+  (let ([body (func-decl-body tree)])
+    (struct-copy
+     func-decl
+     tree
+     [body (struct-copy
+            block
+            body
+            [stmts (foldr fuse-loops '() (block-stmts body))])])))
 
 (define (for-unroll env loopvar start end incr body [pragmas '()] )
   (flatten
@@ -106,7 +120,24 @@
      (map (constant-fold env)
           body))))
 
+(define (push-until-dependence for-node dependencies so-far)
+  (if (or (null? so-far) (member for-node (car dependencies)))
+      (cons for-node so-far)
+      (cons (car so-far) (push-until-dependence for-node (cdr dependencies) (cdr so-far)))))
 
+(define (loop-compression func)
+  (let* ([func-body (func-decl-body func)]
+         [statements (block-stmts func-body)]
+         [dependencies (node-dependencies func)])
+    (display dependencies)
+    (struct-copy func-decl func
+                 [body (block (for/fold ([so-far '()])
+                                  ([index (in-naturals 0)]
+                                   [curr (reverse statements)])
+                                (if (for-node? curr)
+                                    (push-until-dependence curr
+                                                           (take-right dependencies index) so-far)
+                                    (cons curr so-far))) (block-return func-body))])))
 
 
 ;(pretty-print tree)

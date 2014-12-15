@@ -1,6 +1,7 @@
 #lang racket
 
 (require racket/generic)
+(require racket/pretty)
 
 (provide
  (except-out
@@ -23,6 +24,10 @@
 (define (dependent? node-after node-before)
   (match-let ([(list reads-after writes-after) (node-accesses node-after)]
               [(list reads-before writes-before) (node-accesses node-before)])
+    (pretty-print writes-before)
+    (pretty-print reads-after)
+    (pretty-print (any-a-in-b reads-after writes-before))
+    (pretty-print "-------")
     (or (any-a-in-b reads-after writes-before)
         (any-a-in-b writes-after reads-before)
         (any-a-in-b writes-after writes-before))))
@@ -31,49 +36,51 @@
   (filter filter-func (sequence->list (stop-before lst before-func))))
 
 (struct for-node
-        (loop-var init end incr body pragmas)
-        #:transparent
-        #:methods gen:node
-        [(define/generic super-accesses node-accesses)
-         (define (node-children node)
-           (match-let ([(for-node loopvar start end incr body pragmas) node])
-             (append (list loopvar start end incr) body)))
-         (define (node-map fn node)
-           (map (lambda (n) (node-map fn n)) (node-children node)))
-         (define (node-dependencies node)
-           (for/list ([child (for-node-body node)])
-                     (filter-before (lambda (c) (dependent? child c))
-                                    (lambda (c) (eq? c child))
-                                    (for-node-body node))))
-         (define (node-accesses node)
-           (let ([children (node-children node)])
-             (collect-uniq (map super-accesses children))))])
+  (loop-var init end incr body pragmas)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-children node)
+     (match-let ([(for-node loopvar start end incr body pragmas) node])
+       (append (list loopvar start end incr) body)))
+   (define (node-map fn node)
+     (map (lambda (n) (node-map fn n)) (node-children node)))
+   (define (node-dependencies node)
+     (for/list ([child (for-node-body node)])
+       (filter-before (lambda (c) (dependent? child c))
+                      (lambda (c) (eq? c child))
+                      (for-node-body node))))
+   (define (node-accesses node)
+     (let ([children (node-children node)])
+       (collect-uniq (map super-accesses children))))])
 
 (struct assign
-        (target value)
-        #:transparent
-        #:methods gen:node
-        [(define/generic super-accesses node-accesses)
-         (define (node-children node)
-           (match-let ([(assign target value) node])
-             (list target value)))
-         (define (node-accesses node)
-           (match-let* ([(assign target value) node]
-                        [(list reads writes) (super-accesses value)])
-             (set-add! writes target)
-             (list reads writes)))])
+  (target value)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-children node)
+     (match-let ([(assign target value) node])
+       (list target value)))
+   (define (node-accesses node)
+     (match-let* ([(assign target value) node]
+                  [(list reads writes) (super-accesses value)])
+                 (set-add! writes (if (array-reference? target)
+                                      (array-reference-arr target)
+                                      target))
+                 (list reads writes)))])
 
 (struct binop
-        (op1 op2)
-        #:transparent
-        #:methods gen:node
-        [(define/generic super-accesses node-accesses)
-         (define (node-children node)
-           (match-let ([(binop op1 op2) node])
-             (list op1 op2)))
-         (define (node-accesses node)
-           (let ([children (node-children node)])
-             (collect-uniq (map super-accesses children))))])
+  (op1 op2)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-children node)
+     (match-let ([(binop op1 op2) node])
+       (list op1 op2)))
+   (define (node-accesses node)
+     (let ([children (node-children node)])
+       (collect-uniq (map super-accesses children))))])
 
 (struct add binop () #:transparent)
 
@@ -123,12 +130,14 @@
                       (lambda (c) (eq? c child))
                       (block-stmts (func-decl-body node)))))])
 
-(struct return    (target)
-        #:transparent
-        #:methods gen:node
-        [(define/generic super-accesses node-accesses)
-         (define (node-children node) (return-target node))
-         (define (node-accesses node) (super-accesses (return-target node)))])
+(struct return
+  (target)
+  #:transparent
+  #:methods gen:node
+  [(define/generic super-accesses node-accesses)
+   (define (node-children node) (return-target node))
+   (define (node-accesses node) (super-accesses (return-target node)))])
+
 (struct block     (stmts return)                   #:transparent)
 (struct param     (name type)                      #:transparent)
 (struct allocate  (target type rows cols)          #:transparent)

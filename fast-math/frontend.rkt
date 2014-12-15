@@ -123,11 +123,11 @@ Special
        (let* ([evalb    body]
               [sname    (symbol->string 'name)]
               ;; [stmts   (block-stmts  evalb)]
-              [stmts    (fusion-pass (block-stmts  evalb))]
+              [stmts    (block-stmts  evalb)]
               [ret      (block-return evalb)]
               [blk      (block stmts (return ret))]
               [params   (list (param (symbol->string 'arg) type) ...)]
-              [tree     (func-decl ret-type sname params blk)]
+              [tree     (fusion-pass (func-decl ret-type sname params blk))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (pretty-print tree)
