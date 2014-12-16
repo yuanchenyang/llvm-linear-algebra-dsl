@@ -202,6 +202,8 @@
 
 (define (do-math program)
   (begin
+    (pretty-print program)
+    (exit)
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
     (define allocs-body (split allocate? (block-stmts (func-decl-body program))))
     (define allocs (car allocs-body))

@@ -65,7 +65,12 @@ Special
           [(and (mat-block? a) (mat-block? b))
            (let* ([i      (gen-unique-symbol)] [j (gen-unique-symbol)]
                   [target (gen-unique-symbol)]
-                  [rows   (matrix-rows a)] [cols  (matrix-cols a)]
+                  [rows   (if (matrix-block? a)
+                              (matrix-block-rows a)
+                              (matrix-rows a))]
+                  [cols  (if (matrix-block? a)
+                             (matrix-block-cols a)
+                             (matrix-cols a))]
                   [nrows  (num rows)]      [ncols (num cols)]
                   [index  (add j (mul ncols i))]
                   [node
@@ -78,11 +83,12 @@ Special
                                        (array-reference (get-mat-id b) index))))
                      (list pragma-ignore-loop-deps))
                     (list pragma-ignore-loop-deps))])
-             (block (append (get-stmts a)
-                            (get-stmts b)
-                            (list (allocate target mat rows cols))
-                            node)
-                    target))]
+             (matrix-block rows cols
+                           (append (get-stmts a)
+                                   (get-stmts b)
+                                   (list (allocate target mat rows cols))
+                                   node)
+                           target))]
           [else (error "Invalid type of arguments to binop!")])))
 
 (define +. (binop-factory add))
@@ -131,15 +137,16 @@ Special
        (let* ([evalb    body]
               [sname    (symbol->string 'name)]
               ;; [stmts   (block-stmts  evalb)]
-              [stmts    (block-stmts  evalb)]
-              [ret      (block-return evalb)]
+              [stmts    (if (matrix-block? evalb)
+                            (matrix-block-stmts evalb)
+                            (block-stmts evalb))]
+              [ret      (if (matrix-block? evalb)
+                            (matrix-block-return evalb)
+                            (block-return evalb))]
               [blk      (block stmts (return ret))]
               [params   (list (param (if (matrix? arg) (matrix-id arg)
                                          (symbol->string 'arg)) type) ...)]
-              [tree     (mem-to-reg
-                         (fusion-pass
-                          (loop-compression
-                           (func-decl ret-type sname params blk))))]
+              [tree (loop-compression (func-decl ret-type sname params blk))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (compiled arg ...)))]))

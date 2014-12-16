@@ -54,17 +54,18 @@
 
 ;; TODO: add type-checking
 (define (mat-block? val)
-  (or (matrix? val) (block? val)))
+  (or (matrix? val) (block? val) (matrix-block? val)))
 
 (define (get-mat-id val)
-  (if (matrix? val)
-      (symbol (matrix-id val))
-      (block-return val)))
+  (cond [(matrix? val) (symbol (matrix-id val))]
+        [(matrix-block? val)
+         (matrix-block-return val)]
+        [else (block-return val)]))
 
 (define (get-stmts val)
-  (if (matrix? val)
-      '()
-      (block-stmts val)))
+  (cond [(matrix? val) '()]
+        [(matrix-block? val) (matrix-block-stmts val)]
+        [else (block-stmts val)]))
 
 (define (make-constant-matrix name lst)
   (let* ([rows (length lst)]

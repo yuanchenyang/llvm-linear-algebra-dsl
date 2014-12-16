@@ -104,22 +104,24 @@ dv = vbar - (Iy * num) / den
 (define-optimized (update-vectors mat (a mat) (b mat) (c mat) (d mat))
   (-. a (/. (*. b c) d)))
 
-(define Ix (convolve gray1 Gx))
-(define Iy (convolve gray1 Gy))
-(define It (subt gray1 gray0))
-(define Ix2 (mult Ix Ix))
-(define Iy2 (mult Iy Iy))
-(define Ixy (mult Ix Iy))
+(compute-num gray0 gray0 gray0 gray0 gray0)
 
-(define (solve du dv iter-left)
-  (let* ([ubar (convolve du D)]
-         [vbar (convolve dv D)]
-         [num (compute-num Ix ubar Iy vbar It)]
-         [den (plus Ix2 Iy2)] ;; Should be + lam2
-         [du (update-vectors ubar Ix num den)]
-         [dv (update-vectors vbar Iy num den)])
-    (if (> iter-left 0) (solve du dv (- iter-left 1))
-        (cons du dv))
-    ))
+;; (define Ix (convolve gray1 Gx))
+;; (define Iy (convolve gray1 Gy))
+;; (define It (subt gray1 gray0))
+;; (define Ix2 (mult Ix Ix))
+;; (define Iy2 (mult Iy Iy))
+;; (define Ixy (mult Ix Iy))
 
-(solve du dv 10)
+;; (define (solve du dv iter-left)
+;;   (let* ([ubar (convolve du D)]
+;;          [vbar (convolve dv D)]
+;;          [num (compute-num Ix ubar Iy vbar It)]
+;;          [den (plus Ix2 Iy2)] ;; Should be + lam2
+;;          [du (update-vectors ubar Ix num den)]
+;;          [dv (update-vectors vbar Iy num den)])
+;;     (if (> iter-left 0) (solve du dv (- iter-left 1))
+;;         (cons du dv))
+;;     ))
+
+;; (solve du dv 10)
