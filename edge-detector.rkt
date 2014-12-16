@@ -22,7 +22,7 @@
     (define r (bytes-ref pixels (+ i 1)))
     (define g (bytes-ref pixels (+ i 2)))
     (define b (bytes-ref pixels (+ i 3)))
-    (define l (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b)))    
+    (define l (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b)))
     (ptr-set! gray-pixels _double (/ i 4) l))
   (make-matrix-with-ptr "a" height width gray-pixels))
 
@@ -33,16 +33,16 @@
 (define height (exact-floor h))
 (define width (exact-floor w))
 
-(define edge-detector-x (make-constant-matrix "e" (list (list -1.0 0.0 1.0)
-                                                        (list -2.0 0.0 2.0)
-                                                        (list -1.0 0.0 1.0))))
-(define edge-detector-y (make-constant-matrix "e" (list (list -1.0 -2.0 -1.0)
-                                                        (list 0.0 0.0 0.0)
-                                                        (list 1.0 2.0 1.0))))
+(define Sx (make-constant-matrix "Sx" (list (list -1.0 0.0 1.0)
+                                            (list -2.0 0.0 2.0)
+                                            (list -1.0 0.0 1.0))))
+(define Sy (make-constant-matrix "Sy" (list (list -1.0 -2.0 -1.0)
+                                            (list 0.0 0.0 0.0)
+                                            (list 1.0 2.0 1.0))))
 
 (define-optimized (edge-detector mat (a mat))
-  (+. (*. (convolve. a edge-detector-x) (convolve. a edge-detector-x))
-      (*. (convolve. a edge-detector-y) (convolve. a edge-detector-y))))
+  (+. (*. (convolve. a Sx) (convolve. a Sx))
+      (*. (convolve. a Sy) (convolve. a Sy))))
 
 (define edges (edge-detector gray0))
 
