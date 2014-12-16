@@ -1,10 +1,10 @@
 #lang racket
 
-(require "nodes.rkt")
-(require "transforms.rkt")
-(require "matrix.rkt")
-(require "utils.rkt")
-(require "frontend.rkt")
+(require fast-math/nodes)
+(require fast-math/transforms)
+(require fast-math/matrix)
+(require fast-math/utils)
+(require fast-math/frontend)
 (require racket/pretty)
 
 (define env
@@ -46,3 +46,8 @@
 (let ([c (make-matrix "c" 10 10)]
       [d (make-constant-matrix "d" '((-1 0 1) (-2 0 2) (-1 0 1)))])
   (pretty-print (convolve. c d)))
+
+(define (parity n1 n2)
+  (= (modulo n1 2) (modulo n2 2)))
+
+(group-by parity '(1 3 5 2 4 1 2 3 4))
