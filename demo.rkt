@@ -29,7 +29,7 @@
     (define r (bytes-ref pixels (+ i 1)))
     (define g (bytes-ref pixels (+ i 2)))
     (define b (bytes-ref pixels (+ i 3)))
-    (define l (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b)))    
+    (define l (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b)))
     (ptr-set! gray-pixels _double (/ i 4) l))
   (make-matrix-with-ptr "a" 10 10 gray-pixels))
 
@@ -38,7 +38,7 @@
 (define gray0 (color->gray frame0))
 (define gray1 (color->gray frame1))
 
-#| 
+#|
 lam = 0.1
 Gx = [-1.0/12.0,-8.0/12.0,0.0,8.0/12.0,1.0/12.0]
 Gy = [[-1.0/12.0],[-8.0/12.0],[0.0],[8.0/12.0],[1.0/12.0]]
@@ -46,13 +46,13 @@ D = [[1.0/12.0, 2.0/12.0, 1.0/12.0],
 [2.0/12.0, 0.0,      2.0/12.0],
 [1.0/12.0, 2.0/12.0, 1.0/12.0]]
 du = float32(0.0) * u
-dv = float32(0.0) * v 
+dv = float32(0.0) * v
 
 Ix = convolve(im2_data, Gx)
 Iy = convolve(im2_data, Gy)
 It = im1_data - im2_data
 
-Ix2 = Ix * Ix 
+Ix2 = Ix * Ix
 IxIy = Ix * Iy
 Iy2 = Iy * Iy
 
@@ -62,8 +62,8 @@ vbar = convolve(dv, D)
 num = Ix * ubar + Iy * vbar + It
 den = Ix2 + Iy2 + lam2
 du = ubar - (Ix * num) / den
-dv = vbar - (Iy * num) / den 
-|# 
+dv = vbar - (Iy * num) / den
+|#
 (define-values (w h) (send (new bitmap-dc% [bitmap frame0]) get-size))
 (define height (exact-floor h))
 (define width (exact-floor w))
@@ -96,11 +96,14 @@ dv = vbar - (Iy * num) / den
 (define-optimized (convolve mat (a mat) (b mat))
   (convolve. a b))
 
+(define-optimized (convolve-D mat (a mat))
+  (convolve. a D))
+
 ;; num = Ix * ubar + Iy * vbar + It
 (define-optimized (compute-num mat (a mat) (b mat) (c mat) (d mat) (e mat))
   (+. e (+. (*. a b) (*. c d))))
 
-;; dv = vbar - (Iy * num) / den 
+;; dv = vbar - (Iy * num) / den
 (define-optimized (update-vectors mat (a mat) (b mat) (c mat) (d mat))
   (-. a (/. (*. b c) d)))
 
@@ -129,3 +132,16 @@ dv = vbar - (Iy * num) / den
 ;; (define du-dv (solve du dv 5))
 ;; (matrix-display (car du-dv))
 ;; (matrix-display (cdr du-dv))
+
+(define (solve du dv iter-left)
+  (let* ([ubar (convolve-D du)]
+         [vbar (convolve-D dv)]
+         [num (compute-num Ix ubar Iy vbar It)]
+         [den (plus Ix2 Iy2)] ;; Should be + lam2
+         [du (update-vectors ubar Ix num den)]
+         [dv (update-vectors vbar Iy num den)])
+    (if (> iter-left 0) (solve du dv (- iter-left 1))
+        (cons du dv))
+    ))
+
+(solve du dv 10)
