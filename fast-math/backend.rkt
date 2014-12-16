@@ -225,7 +225,10 @@
            body)
       (define ret-symb (compile-return (block-return (func-decl-body program))
 				       builder env context (func-decl-ret-type program)))
-      ;; (LLVMDumpModule module)
+      (LLVMDumpModule module)
+      ;; (define mem2reg (LLVMCreatePromoteMemoryToRegisterPass))
+      (LLVMOptimizeModule module)
+      (LLVMDumpModule module)
 
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
         (when err

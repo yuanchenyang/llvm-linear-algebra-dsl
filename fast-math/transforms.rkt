@@ -41,9 +41,19 @@
   (match-let ([(binop op1 op2) tree])
     (let ([a (folder op1)]
           [b (folder op2)])
-      (if (and (num? a) (num? b))
-          (num (op-fn (num-value a) (num-value b)))
-          (op a b)))))
+      (cond [(and (num? a) (num? b))
+             (num (op-fn (num-value a) (num-value b)))]
+            [(num? a)
+             (cond [(and (= (num-value a) 0) (equal? op add)) b]
+                   [(and (= (num-value a) 1) (equal? op mul)) b]
+                   [(and (= (num-value a) 0) (equal? op mul)) (num 0)]
+                   [else (op a b)])]
+            [(num? b)
+             (cond [(and (= (num-value b) 0) (equal? op add)) a]
+                   [(and (= (num-value b) 1) (equal? op mul)) a]
+                   [(and (= (num-value b) 0) (equal? op mul)) (num 0)]
+                   [else (op a b)])]
+            [else (op a b)]))))
 
 (define (constant-fold env)
   (define (folder tree)
