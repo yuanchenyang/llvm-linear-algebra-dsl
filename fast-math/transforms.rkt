@@ -55,6 +55,7 @@
           [(array-reference? tree) (fold-symbol-array-reference tree folder)]
           [(add? tree) (fold-symbol-binop tree add + folder)]
           [(mul? tree) (fold-symbol-binop tree mul * folder)]
+          [(div? tree) (fold-symbol-binop tree div / folder)]
           [(num? tree) tree]
           [else (error tree)]))
   folder)

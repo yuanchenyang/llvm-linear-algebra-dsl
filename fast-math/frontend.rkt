@@ -146,7 +146,10 @@ Special
               [blk      (block stmts (return ret))]
               [params   (list (param (if (matrix? arg) (matrix-id arg)
                                          (symbol->string 'arg)) type) ...)]
-              [tree (loop-compression (func-decl ret-type sname params blk))]
+              [tree (mem-to-reg
+                     (fusion-pass
+                      (loop-compression
+                       (func-decl ret-type sname params blk))))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (compiled arg ...)))]))

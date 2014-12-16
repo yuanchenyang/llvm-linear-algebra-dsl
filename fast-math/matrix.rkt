@@ -14,7 +14,7 @@
   #:transparent)
 
 (define (make-matrix id rows cols)
-  (matrix id rows cols (malloc (_array _float rows cols))))
+  (matrix id rows cols (malloc (_array _double rows cols))))
 
 (define (make-zero-matrix id rows cols)
   (let ([mat (make-matrix id rows cols)])
@@ -27,13 +27,13 @@
   (matrix id rows cols ptr))
 
 (define (matrix-ref mat row col)
-  (ptr-ref (matrix-contents mat) _float (+ (* row (matrix-cols mat)) col)))
+  (ptr-ref (matrix-contents mat) _double (+ (* row (matrix-cols mat)) col)))
 
 (define (matrix-ref-index mat index)
-  (ptr-ref (matrix-contents mat) _float index))
+  (ptr-ref (matrix-contents mat) _double index))
 
 (define (matrix-set! mat row col val)
-  (ptr-set! (matrix-contents mat) _float (+ (* row (matrix-cols mat)) col) val))
+  (ptr-set! (matrix-contents mat) _double (+ (* row (matrix-cols mat)) col) val))
 
 (define (matrix-load! mat vals)
   (define i 0)

@@ -10,7 +10,7 @@
 
 (define context (LLVMContextCreate))
 (define int-type (LLVMInt32TypeInContext context))
-(define float-type (LLVMFloatTypeInContext context))
+(define float-type (LLVMDoubleTypeInContext context))
 (define bool-type (LLVMInt1TypeInContext context))
 
 (define (builder->function builder)
@@ -101,10 +101,12 @@
                        (cond [(add? node) LLVMBuildFAdd]
                              [(mul? node) LLVMBuildFMul]
                              [(sub? node) LLVMBuildFSub]
+                             [(div? node) LLVMBuildFDiv]
                              [else (error "Unsupported binop")])
                        (cond [(add? node) LLVMBuildAdd]
                              [(mul? node) LLVMBuildMul]
                              [(sub? node) LLVMBuildSub]
+                             [(div? node) LLVMBuildSDiv]
                              [else (error "Unsupported binop")]))])
     (operator builder op1 op2 (gen-unique-name))))
 
@@ -202,8 +204,6 @@
 
 (define (do-math program)
   (begin
-    (pretty-print program)
-    (exit)
     (define module (LLVMModuleCreateWithNameInContext "jit-module" context))
     (define allocs-body (split allocate? (block-stmts (func-decl-body program))))
     (define allocs (car allocs-body))
