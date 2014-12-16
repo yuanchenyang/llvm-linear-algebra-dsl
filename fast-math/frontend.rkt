@@ -119,15 +119,15 @@ Special
              [kern (array-reference (get-mat-id b) kern-index)]
              [env (make-hash (list (cons (matrix-id b) b)))]
              [node (for-block y pady (- ya pady) 1
-                     (for-block x padx (- xa padx) 1
-                       (for-unroll env yy (- pady) (+ pady 1) 1
-                         (for-unroll env xx (- padx) (+ padx 1) 1
-                           (list (assign out (add out (mul in kern))))))))])
-        (block (append
-                (get-stmts a)
-                (list (allocate target mat ya xa))
-                node)
-               target))
+                              (for-block x padx (- xa padx) 1
+                                         (for-unroll env yy (- pady) (+ pady 1) 1
+                                                     (for-unroll env xx (- padx) (+ padx 1) 1
+                                                                 (list (assign out (add out (mul in kern))))))))])
+        (matrix-block ya xa (append
+                             (get-stmts a)
+                             (list (allocate target mat ya xa))
+                             node)
+                      target))
       (error "Invalid type of arguments to convolve!")))
 
 (define-syntax define-optimized

@@ -154,7 +154,6 @@
   (let* ([x (LLVMGetParam func index)]
          [name (param-name param)])
     (LLVMSetValueName x name)
-    (display name)
     (cons name x)))
 
 (define (get-type param)
@@ -225,7 +224,7 @@
            body)
       (define ret-symb (compile-return (block-return (func-decl-body program))
 				       builder env context (func-decl-ret-type program)))
-      (LLVMDumpModule module)
+      ;; (LLVMDumpModule module)
 
       (let-values (((err) (LLVMVerifyModule module 'LLVMReturnStatusAction)))
         (when err

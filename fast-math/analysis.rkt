@@ -28,8 +28,6 @@
   (match-let* ([(cons bbs live-outs) bbs-succ-live-ins]
                [(list gen kill _) (build-gen curr)]
                [live-ins (set-union gen (set-subtract live-outs kill))])
-              (pretty-print gen)
-              (pretty-print kill)
               (cons (cons (struct-copy basic-block curr [live-outs live-outs]
                                        [live-ins live-ins]) bbs) (set-union live-ins live-outs))))
 (define (liveness-analyze body)
