@@ -145,8 +145,9 @@
   #:methods gen:node
   [(define/generic super-accesses node-accesses)
    (define (node-accesses node)
-     (list (mutable-set)
-           (mutable-set (symbol-name (allocate-target node)))))])
+     (begin
+       (list (mutable-set)
+             (mutable-set (symbol-name (allocate-target node))))))])
 
 
 (define int-ptr 0)

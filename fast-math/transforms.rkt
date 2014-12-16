@@ -11,7 +11,8 @@
          loop-compression
          mem-to-reg
          lift-allocates
-         loop-sort)
+         loop-sort
+         dead-code-elimination)
 
 (define (fold-symbol-for-node tree folder)
   (match-let ([(for-node loopvar start end incr body pragmas) tree])
@@ -199,6 +200,26 @@
                [stmt-deps (map (lambda (x y) (cons x y)) dependencies stmts)]
                [sorted (sort stmt-deps stmt-compare)])
               (struct-copy func-decl func [body (block (map cdr sorted) ret)])))
+
+(define (check-dependency curr dependencies)
+  (if (null? dependencies) #t
+      (let ([curr-dep (car dependencies)])
+        (if (set-member? curr-dep curr) #f
+            (check-dependency curr (cdr dependencies))))))
+
+(define (remove-dead-code stmts dependencies)
+  (if (null? stmts) '()
+      (let* ([curr (car stmts)]
+             [dead? (check-dependency curr dependencies)]
+             [rest (remove-dead-code (cdr stmts) (cdr dependencies))])
+        (if (and (allocate? curr) dead?) rest
+            (cons curr rest)))))
+
+(define (dead-code-elimination func)
+  (match-let* ([(block stmts ret) (func-decl-body func)]
+               [dependencies (node-dependencies func)]
+               [processed (remove-dead-code stmts dependencies)])
+              (struct-copy func-decl func [body (block processed ret)])))
 
                                         ;(pretty-print tree)
                                         ;(pretty-print (fusion-pass tree))

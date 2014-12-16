@@ -9,8 +9,8 @@
 ;;(unless (= (vector-length arguments) 2)
 ;;  (printf "Usage: racket demo.rkt frame0 frame1~n")
 ;;  (exit))
-(define frame0-name "image1.png")
-(define frame1-name "valve.png")
+(define frame0-name "frame0.png")
+(define frame1-name "frame1.png")
 
 (require racket/draw)
 (require ffi/unsafe)
@@ -67,8 +67,8 @@ dv = vbar - (Iy * num) / den
 (define-values (w h) (send (new bitmap-dc% [bitmap frame1]) get-size))
 (define height (exact-floor h))
 (define width (exact-floor w))
-;; (define du (make-zero-matrix "du" height width))
-;; (define dv (make-zero-matrix "dv" height width))
+(define du (make-zero-matrix "du" height width))
+(define dv (make-zero-matrix "dv" height width))
 
 (define Gx (make-constant-matrix
             "b" (list (list (/ -1.0 12.0) (/ -8.0 12.0) 0.0 (/ 8.0 12.0) (/ 1.0 12.0)))))
@@ -103,61 +103,59 @@ dv = vbar - (Iy * num) / den
 (define-optimized (update-vectors mat (a mat) (b mat) (c mat) (d mat))
   (-. a (/. (*. b c) d)))
 
-;; (define Ix (convolve gray1 Gx))
-;; (define Iy (convolve gray1 Gy))
-;; (define It (subt gray1 gray0))
-;; (define Ix2 (mult Ix Ix))
-;; (define Iy2 (mult Iy Iy))
-;; (define Ixy (mult Ix Iy))
-;; (define ubar (convolve du D))
-;; (define vbar (convolve dv D))
-;; (define numer (compute-num Ix ubar Iy vbar It))
-;; (define lam2 (make-constant-matrix "lam2"
-;;                                    (for/list ([i (in-range height)])
-;;                                      (for/list ([j (in-range width)])
-;;                                        .1))))
+(define Ix (convolve gray1 Gx))
+(define Iy (convolve gray1 Gy))
+(define It (subt gray1 gray0))
+(define Ix2 (mult Ix Ix))
+(define Iy2 (mult Iy Iy))
+(define Ixy (mult Ix Iy))
+(define ubar (convolve du D))
+(define vbar (convolve dv D))
+(define numer (compute-num Ix ubar Iy vbar It))
+(define lam2 (make-constant-matrix "lam2"
+                                   (for/list ([i (in-range height)])
+                                     (for/list ([j (in-range width)])
+                                       .1))))
 
-;; (define (solve du dv iter)
-;;   (for/fold ([du-dv (cons du dv)])
-;;       ([_ (in-range iter)])
-;;     (match-let* ([(cons du dv) du-dv]
-;;                  [ubar (convolve du D)]
-;;                  [vbar (convolve dv D)]
-;;                  [num (compute-num Ix ubar Iy vbar It)]
-;;                  [den (plus Ix2 Iy2 lam2)]
-;;                  [du (update-vectors ubar Ix num den)]
-;;                  [dv (update-vectors vbar Iy num den)])
-;;                 (cons du dv))))
-;; (solve du dv 10)
+(define (solve du dv iter)
+  (for/fold ([du-dv (cons du dv)])
+      ([_ (in-range iter)])
+    (match-let* ([(cons du dv) du-dv]
+                 [ubar (convolve du D)]
+                 [vbar (convolve dv D)]
+                 [num (compute-num Ix ubar Iy vbar It)]
+                 [den (plus Ix2 Iy2 lam2)]
+                 [du (update-vectors ubar Ix num den)]
+                 [dv (update-vectors vbar Iy num den)])
+                (cons du dv))))
 
-;; (define u-v (solve du dv 5))
-;; (define u (car u-v))
-;; (define v (cdr u-v))
+(define u-v (solve du dv 100))
+(define u (car u-v))
+(define v (cdr u-v))
 
 (require (only-in math/array build-array array-make-polar array+ array-magnitude
                   array-all-min array-angle array array-all-max array/ array* array-shape
                   array-map array->list array-sqr array-scale array-sqrt))
 
-;; (define u-arr (build-array (vector height width) (lambda (js)
-;;                                                    (match-define (vector j0 j1) js)
-;;                                                    (matrix-ref u j0 j1))))
-;; (define v-arr (build-array (vector height width) (lambda (js)
-;;                                                    (match-define (vector j0 j1) js)
-;;                                                    (matrix-ref v j0 j1))))
-;; (define mag-ang (array-make-polar u-arr v-arr))
-;; (define mag (array-magnitude mag-ang))
-;; (define ang (array-angle mag-ang))
-;; (define min-mag (array-all-min mag))
-;; (define mag-shift (if (< min-mag 0) (abs min-mag) 0))
-;; (define mag-shifted (array+ mag (array mag-shift)))
-;; (define mag-max (array-all-max mag-shifted))
-;; (define mag-normalized (array-scale (array/ mag-shifted (if (= 0 mag-max) (array 1) (array mag-max))) 255))
+(define u-arr (build-array (vector height width) (lambda (js)
+                                                   (match-define (vector j0 j1) js)
+                                                   (matrix-ref u j0 j1))))
+(define v-arr (build-array (vector height width) (lambda (js)
+                                                   (match-define (vector j0 j1) js)
+                                                   (matrix-ref v j0 j1))))
+(define mag-ang (array-make-polar u-arr v-arr))
+(define mag (array-magnitude mag-ang))
+(define ang (array-angle mag-ang))
+(define min-mag (array-all-min mag))
+(define mag-shift (if (< min-mag 0) (abs min-mag) 0))
+(define mag-shifted (array+ mag (array mag-shift)))
+(define mag-max (array-all-max mag-shifted))
+(define mag-normalized (array-scale (array/ mag-shifted (if (= 0 mag-max) (array 1) (array mag-max))) 255))
 
 (define output (make-object bitmap% width height))
 (define output-dc (new bitmap-dc% [bitmap output]))
 
-;; (define mag-list (array->list mag-normalized))
-(define mag-list (array->list e-norm))
+(define mag-list (array->list mag-normalized))
 (define pixels (make-bytes (* 4 width height)))
 (for ([i (in-range 0 (* 4 height width) 4)]
       [item mag-list])

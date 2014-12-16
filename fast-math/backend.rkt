@@ -12,6 +12,7 @@
 (define int-type (LLVMInt32TypeInContext context))
 (define float-type (LLVMDoubleTypeInContext context))
 (define bool-type (LLVMInt1TypeInContext context))
+(LLVMLinkInJIT)
 
 (define (builder->function builder)
   (LLVMGetBasicBlockParent (LLVMGetInsertBlock builder)))
@@ -236,7 +237,6 @@
       (lambda args
         (define args-and-allocs (append args (map build-matrix-from-alloc allocs))) 
         (define processed-args (map convert-arg args-and-allocs))
-        (LLVMLinkInJIT)
         (define ee (LLVMCreateExecutionEngineForModule module))
         (define output (LLVMRunFunction ee fun processed-args))
         (cond [(= (func-decl-ret-type program) int-ptr)

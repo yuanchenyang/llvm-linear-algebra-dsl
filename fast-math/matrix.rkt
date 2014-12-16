@@ -14,7 +14,7 @@
   #:transparent)
 
 (define (make-matrix id rows cols)
-  (matrix id rows cols (malloc (_array _double rows cols))))
+  (matrix id rows cols (malloc (_array _double rows cols) 'raw)))
 
 (define (make-zero-matrix id rows cols)
   (let ([mat (make-matrix id rows cols)])

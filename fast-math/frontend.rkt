@@ -148,10 +148,11 @@ Special
               [blk      (block stmts (return ret))]
               [params   (list (param (if (matrix? arg) (matrix-id arg)
                                          (symbol->string 'arg)) type) ...)]
-              [tree (mem-to-reg
-                     (fusion-pass
-                      (loop-sort (lift-allocates
-                                  (func-decl ret-type sname params blk)))))]
+              [tree (dead-code-elimination
+                     (mem-to-reg
+                      (fusion-pass
+                       (loop-sort (lift-allocates
+                                   (func-decl ret-type sname params blk))))))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (compiled arg ...)))]))
