@@ -27,7 +27,7 @@ Poster: https://docs.google.com/presentation/d/1nBllOTOpP18xrpa_EW7FfPJBJyOPZkI7
     $ sbt run
 
 
-## racket-llvm (OSX)
+# racket-llvm (OSX)
 
     $ cd cs164fa14-final-project
     $ git submodule update --init --recursive

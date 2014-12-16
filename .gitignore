@@ -2,3 +2,4 @@ target
 *~
 /lms/out.jpg
 /fast-math/compiled/
+*.dylib
