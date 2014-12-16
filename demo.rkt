@@ -9,8 +9,8 @@
 ;;(unless (= (vector-length arguments) 2)
 ;;  (printf "Usage: racket demo.rkt frame0 frame1~n")
 ;;  (exit))
-(define frame0-name "valve.png")
-(define frame1-name "valve.png")
+(define frame0-name "image1.png")
+(define frame1-name "image1.png")
 
 (require racket/draw)
 (require ffi/unsafe)
