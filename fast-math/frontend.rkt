@@ -122,7 +122,9 @@ Special
                               (for-block x padx (- xa padx) 1
                                          (for-unroll env yy (- pady) (+ pady 1) 1
                                                      (for-unroll env xx (- padx) (+ padx 1) 1
-                                                                 (list (assign out (add out (mul in kern))))))))])
+                                                                 (list (assign out (add out (mul in kern))))))
+                                         (list pragma-ignore-loop-deps))
+                              (list pragma-ignore-loop-deps))])
         (matrix-block ya xa (append
                              (get-stmts a)
                              (list (allocate target mat ya xa))
@@ -148,8 +150,8 @@ Special
                                          (symbol->string 'arg)) type) ...)]
               [tree (mem-to-reg
                      (fusion-pass
-                      (loop-compression
-                       (func-decl ret-type sname params blk))))]
+                      (loop-sort (lift-allocates
+                                  (func-decl ret-type sname params blk)))))]
               [compiled (do-math tree)])
          ;;compiled))]))
          (compiled arg ...)))]))

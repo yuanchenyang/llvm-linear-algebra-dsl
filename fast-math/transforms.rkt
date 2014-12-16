@@ -9,7 +9,9 @@
          constant-fold
          for-unroll
          loop-compression
-         mem-to-reg)
+         mem-to-reg
+         lift-allocates
+         loop-sort)
 
 (define (fold-symbol-for-node tree folder)
   (match-let ([(for-node loopvar start end incr body pragmas) tree])
@@ -109,15 +111,18 @@
 (define (loop-compression func)
   (let* ([func-body (func-decl-body func)]
          [statements (block-stmts func-body)]
-         [dependencies (node-dependencies func)])
+         [dependencies (node-dependencies func)]
+         [stmts (for/fold ([so-far '()])
+                    ([index (in-naturals 0)]
+                     [curr (reverse statements)])
+                  (if (for-node? curr)
+                      (push-until-dependence
+                       curr (take-right dependencies index) so-far)
+                      (cons curr so-far)))])
+    (pretty-print dependencies)
+    (pretty-print func-body)
     (struct-copy func-decl func
-                 [body (block (for/fold ([so-far '()])
-                                  ([index (in-naturals 0)]
-                                   [curr (reverse statements)])
-                                (if (for-node? curr)
-                                    (push-until-dependence
-                                     curr (take-right dependencies index) so-far)
-                                    (cons curr so-far)))
+                 [body (block stmts
                               (block-return func-body))])))
 
 (define (do-mem-to-reg live-ins live-outs seen)
@@ -160,6 +165,30 @@
          [ret (last promoted)]
          [stmts (drop-right promoted 1)])
     (struct-copy func-decl func [body (block stmts ret)])))
+
+(define (lift-allocates func)
+  (match-let* ([(block stmts ret) (func-decl-body func)])
+              (define-values (allocates rest) (partition allocate? stmts))
+              (struct-copy func-decl func [body (block (append allocates rest) ret)])))
+
+(define (stmt-compare prev next)
+  (match-let* ([(cons prev-dep prev-node) prev]
+               [(cons next-dep next-node) next])
+              (if (set-member? next-dep prev-node) #t
+                  (if (and (for-node? prev-node) (for-node? next-node))
+                      (let ([len1 (- (num-value (for-node-end prev-node))
+                                     (num-value (for-node-init prev-node)))]
+                            [len2 (- (num-value (for-node-end next-node))
+                                     (num-value (for-node-init next-node)))])
+                        (< len1 len2))
+                      #f))))
+
+(define (loop-sort func)
+  (match-let* ([(block stmts ret) (func-decl-body func)]
+               [dependencies (node-dependencies func)]
+               [stmt-deps (map (lambda (x y) (cons x y)) dependencies stmts)]
+               [sorted (sort stmt-deps stmt-compare)])
+              (struct-copy func-decl func [body (block (map cdr sorted) ret)])))
 
                                         ;(pretty-print tree)
                                         ;(pretty-print (fusion-pass tree))
