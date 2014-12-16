@@ -10,7 +10,7 @@
 ;;  (printf "Usage: racket demo.rkt frame0 frame1~n")
 ;;  (exit))
 (define frame0-name "image1.png")
-(define frame1-name "image1.png")
+(define frame1-name "valve.png")
 
 (require racket/draw)
 (require ffi/unsafe)
@@ -103,18 +103,6 @@ dv = vbar - (Iy * num) / den
 (define-optimized (update-vectors mat (a mat) (b mat) (c mat) (d mat))
   (-. a (/. (*. b c) d)))
 
-(define edge-detector-x (make-constant-matrix "e" (list (list -1.0 0.0 1.0)
-                                                        (list -2.0 0.0 2.0)
-                                                        (list -1.0 0.0 1.0))))
-(define edge-detector-y (make-constant-matrix "e" (list (list -1.0 -2.0 -1.0)
-                                                        (list 0.0 0.0 0.0)
-                                                        (list 1.0 2.0 1.0))))
-
-(define-optimized (edge-detector mat (a mat))
-  (+. (*. (convolve. a edge-detector-x) (convolve. a edge-detector-x))
-      (*. (convolve. a edge-detector-y) (convolve. a edge-detector-y))))
-
-(define edges (edge-detector gray1))
 ;; (define Ix (convolve gray1 Gx))
 ;; (define Iy (convolve gray1 Gy))
 ;; (define It (subt gray1 gray0))
@@ -156,12 +144,6 @@ dv = vbar - (Iy * num) / den
 ;; (define v-arr (build-array (vector height width) (lambda (js)
 ;;                                                    (match-define (vector j0 j1) js)
 ;;                                                    (matrix-ref v j0 j1))))
-(define e-arr (array-sqrt (build-array (vector height width) (lambda (js)
-                                                               (match-define (vector j0 j1) js)
-                                                               (matrix-ref edges j0 j1)))))
-(define e-norm
-  (let ([max (array-all-max e-arr)])
-    (array-scale e-arr (* (/ 1 max) 255))))
 ;; (define mag-ang (array-make-polar u-arr v-arr))
 ;; (define mag (array-magnitude mag-ang))
 ;; (define ang (array-angle mag-ang))
