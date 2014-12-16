@@ -19,6 +19,17 @@
 (define (array-ref-name a)
   (symbol-name (array-reference-arr a)))
 
+(define (group-by cmp lst)
+  (foldr (lambda (cur so-far)
+           (let ([prev (if (null? so-far) #f (caar so-far))])
+             (if (and prev (cmp cur prev))
+                 (cons (cons cur (car so-far))
+                       (cdr so-far))
+                 (cons (list cur)
+                       so-far))))
+         '()
+         lst))
+
 (provide gen-unique-num
          gen-unique-symbol
 	 gen-unique-name
