@@ -55,6 +55,7 @@
           [(array-reference? tree) (fold-symbol-array-reference tree folder)]
           [(add? tree) (fold-symbol-binop tree add + folder)]
           [(mul? tree) (fold-symbol-binop tree mul * folder)]
+          [(div? tree) (fold-symbol-binop tree div / folder)]
           [(num? tree) tree]
           [else (error tree)]))
   folder)
@@ -109,14 +110,17 @@
   (let* ([func-body (func-decl-body func)]
          [statements (block-stmts func-body)]
          [dependencies (node-dependencies func)])
+    (pretty-print dependencies)
+    (pretty-print func)
     (struct-copy func-decl func
                  [body (block (for/fold ([so-far '()])
                                   ([index (in-naturals 0)]
                                    [curr (reverse statements)])
                                 (if (for-node? curr)
-                                    (push-until-dependence curr
-                                                           (take-right dependencies index) so-far)
-                                    (cons curr so-far))) (block-return func-body))])))
+                                    (push-until-dependence
+                                     curr (take-right dependencies index) so-far)
+                                    (cons curr so-far)))
+                              (block-return func-body))])))
 
 (define (do-mem-to-reg live-ins live-outs seen)
   (define (doer statement)

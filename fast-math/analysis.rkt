@@ -1,38 +1,28 @@
 #lang racket
 
 (require "nodes.rkt")
+(require fast-math/utils)
 (provide (all-defined-out))
 
 (struct basic-block (statements live-ins live-outs) #:transparent)
 
 (define (bb-builder curr so-far)
   (if (for-node? curr)
-      (list '() (basic-block (list curr) (set) (set))
-            (basic-block (car so-far) (set) (set)) (cdr so-far))
+      (list '()
+            (basic-block (list curr) (set) (set))
+            (basic-block (car so-far) (set) (set))
+            (cdr so-far))
       (cons (cons curr (car so-far)) (cdr so-far))))
-;; (append (list '()
-;;               (flatten (build-basic-blocks curr))
-;;               (basic-block (car so-far) (set) (set) '()))
-;;         (cdr so-far))
-;; (cons (cons curr (car so-far)) (cdr so-far))))
 
 (define (build-basic-blocks input)
   (let* ([defn (func-decl-body input)]
          [stmts (append (block-stmts defn) (list (block-return defn)))]
-         [body (foldr bb-builder (list '()) stmts)]
-         [block (block
-                 (filter basic-block? (cons (basic-block (car body) (set) (set)) (cdr body)) )'())])
+         [body (map (lambda (x) (basic-block x (set) (set)))
+                    (group-by (lambda (x y) (not (or (for-node? x)
+                                                     (for-node? y))))
+                              stmts))]
+         [block (block body '())])
     (struct-copy func-decl input [body block])))
-;; (let* ([body (cond [(func-decl? input)
-;;                     (let ([block (func-decl-body input)])
-;;                       (append (block-stmts block) (list (block-return block))))]
-;;                    [(for-node? input) (for-node-body input)]
-;;                    [else (error "Unsupported node type for build basic blocks")])]
-;;        [bbs (foldr bb-builder (list '()) body)]
-;;        [node (if (func-decl? input)
-;;                  (struct-copy func-decl input [body '()])
-;;                  (struct-copy for-node input [body '()]))])
-;;   (flatten (cons (basic-block (car bbs) (set) (set) node) (cdr bbs)))))
 
 (define (do-liveness-analysis curr bbs-succ-live-ins)
   (match-let* ([(cons bbs live-outs) bbs-succ-live-ins]

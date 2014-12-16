@@ -144,7 +144,9 @@
   #:transparent
   #:methods gen:node
   [(define/generic super-accesses node-accesses)
-   (define (node-accesses node) (super-accesses (allocate-target node)))])
+   (define (node-accesses node)
+     (list (mutable-set)
+           (mutable-set (symbol-name (allocate-target node)))))])
 
 
 (define int-ptr 0)
@@ -164,3 +166,5 @@
 ;; A for loop wrapped in a list, basically a block without any return statementss
 (define (for-block loopvar start end incr body [pragmas '()])
   (list (for-loop loopvar start end incr body pragmas)))
+
+(struct matrix-block (rows cols stmts return) #:transparent)

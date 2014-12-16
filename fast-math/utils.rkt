@@ -1,6 +1,7 @@
 #lang racket
 
 (require fast-math/nodes)
+(provide group-by)
 
 (define uniq 0)
 

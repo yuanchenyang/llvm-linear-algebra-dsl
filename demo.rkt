@@ -22,16 +22,16 @@
   (define width (exact-floor w))
   (define height (exact-floor h))
   (define pixels (make-bytes (* 4 width height)))
-  (define gray-pixels (malloc (_array _int width height)))
+  (define gray-pixels (malloc (_array _double width height)))
   (send color-dc get-argb-pixels 0 0 width height pixels)
   (for ([i (in-range 0 (* 4 width height) 4)])
     (define α (bytes-ref pixels i))
     (define r (bytes-ref pixels (+ i 1)))
     (define g (bytes-ref pixels (+ i 2)))
     (define b (bytes-ref pixels (+ i 3)))
-    (define l (exact-floor (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b))))    
-    (ptr-set! gray-pixels _int (/ i 4) l))
-  (make-matrix-with-ptr "a" height width gray-pixels))
+    (define l (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b)))    
+    (ptr-set! gray-pixels _double (/ i 4) l))
+  (make-matrix-with-ptr "a" 10 10 gray-pixels))
 
 (define frame0 (make-object bitmap% frame0-name))
 (define frame1 (make-object bitmap% frame1-name))
@@ -110,16 +110,22 @@ dv = vbar - (Iy * num) / den
 (define Ix2 (mult Ix Ix))
 (define Iy2 (mult Iy Iy))
 (define Ixy (mult Ix Iy))
+(define ubar (convolve du D))
+(define vbar (convolve dv D))
+(define numer (compute-num Ix ubar Iy vbar It))
+(matrix-display ubar)
 
-(define (solve du dv iter-left)
-  (let* ([ubar (convolve du D)]
-         [vbar (convolve dv D)]
-         [num (compute-num Ix ubar Iy vbar It)]
-         [den (plus Ix2 Iy2)] ;; Should be + lam2
-         [du (update-vectors ubar Ix num den)]
-         [dv (update-vectors vbar Iy num den)])
-    (if (> iter-left 0) (solve du dv (- iter-left 1))
-        (cons du dv))
-    ))
+;; (define (solve du dv iter-left)
+;;   (let* ([ubar (convolve du D)]
+;;          [vbar (convolve dv D)]
+;;          [num (compute-num Ix ubar Iy vbar It)]
+;;          [den (plus Ix2 Iy2)] ;; Should be + lam2
+;;          [du (update-vectors ubar Ix num den)]
+;;          [dv (update-vectors vbar Iy num den)])
+;;     (if (> iter-left 0) (solve du dv (- iter-left 1))
+;;         (cons du dv))
+;;     ))
 
-(solve du dv 10)
+;; (define du-dv (solve du dv 5))
+;; (matrix-display (car du-dv))
+;; (matrix-display (cdr du-dv))
