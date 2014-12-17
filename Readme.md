@@ -7,34 +7,15 @@ CS164 Final Project
 * [Presentation Slides](https://docs.google.com/presentation/d/1R167b4CC90N_FAhNEubsBVET6piK1DK2_JPPSHtrwh0)
 * [Poster](https://docs.google.com/presentation/d/1nBllOTOpP18xrpa_EW7FfPJBJyOPZkI7NQFag5mze90)
 
-# LMS
-
-
-## Dependencies
-
-* [SBT](http://www.scala-sbt.org/):
-  * Create or edit the file `~/.sbtconfig` to contain the following options for the JVM:
-
-    `SBT_OPTS="-Xms3G -Xmx3G -Xss1M -XX:MaxPermSize=192M -XX:+UseParallelGC"`
-
-* [LMS](https://github.com/TiarkRompf/virtualization-lms-core):
-  * `git clone https://github.com/TiarkRompf/virtualization-lms-core.git`
-  * `sbt publish-local`
-
-## To run
-
-    $ cd lms
-    $ sbt run
-
-
 # racket-llvm (OSX)
 
     $ cd cs164fa14-final-project
     $ git submodule update --init --recursive
     $ brew install llvm35 --with-clang
-    $ raco pkg install srfi  # answer a to have it grab all dependencies automatically
+    $ raco pkg install srfi  # answer a to install all dependencies automatically
+    $ raco pkg install math  # answer a to install all dependencies automatically
     $ raco link racket-llvm
-    $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 raco setup racket-llvm
+    $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 raco setup racket-llvm # ignore error: 'utility' file not found
     $ cd racket-llvm
     $ DYLD_LIBRARY_PATH=/usr/local/Cellar/llvm35/3.5.0/lib/llvm-3.5/lib/ LLVM_CONFIG=llvm-config-3.5 racket build.rkt
     $ cd ..
@@ -71,3 +52,21 @@ CS164 Final Project
       ret i32 %b
     }
     4
+
+# LMS
+
+## Dependencies
+
+* [SBT](http://www.scala-sbt.org/):
+  * Create or edit the file `~/.sbtconfig` to contain the following options for the JVM:
+
+    `SBT_OPTS="-Xms3G -Xmx3G -Xss1M -XX:MaxPermSize=192M -XX:+UseParallelGC"`
+
+* [LMS](https://github.com/TiarkRompf/virtualization-lms-core):
+  * `git clone https://github.com/TiarkRompf/virtualization-lms-core.git`
+  * `sbt publish-local`
+
+## To run
+
+    $ cd lms
+    $ sbt run
