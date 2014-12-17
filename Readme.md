@@ -1,11 +1,11 @@
 CS164 Final Project
 ===================
 
-* Proposal: https://docs.google.com/document/d/1gH8FUI_r3geOlxcH8uTkqoJPcMoihPSUoW2LKaROUmI
-* PA 6 Report: https://docs.google.com/document/d/1YQ0ljScwbgqIqp_zTqe_28akUQ1iJcR3szPaDjQ-E8c
-* Design Document: https://docs.google.com/document/d/1jxXGokp4xRlaZ8CKpWOpg-vOyd2hZooCkJ8mj0_cFmw
-* Presentation Slides: https://docs.google.com/presentation/d/1R167b4CC90N_FAhNEubsBVET6piK1DK2_JPPSHtrwh0
-* Poster: https://docs.google.com/presentation/d/1nBllOTOpP18xrpa_EW7FfPJBJyOPZkI7NQFag5mze90
+* [Project Proposal](https://docs.google.com/document/d/1gH8FUI_r3geOlxcH8uTkqoJPcMoihPSUoW2LKaROUmI)
+* [PA 6 Report](https://docs.google.com/document/d/1YQ0ljScwbgqIqp_zTqe_28akUQ1iJcR3szPaDjQ-E8c)
+* [Design Document](https://docs.google.com/document/d/1jxXGokp4xRlaZ8CKpWOpg-vOyd2hZooCkJ8mj0_cFmw)
+* [Presentation Slides](https://docs.google.com/presentation/d/1R167b4CC90N_FAhNEubsBVET6piK1DK2_JPPSHtrwh0)
+* [Poster](https://docs.google.com/presentation/d/1nBllOTOpP18xrpa_EW7FfPJBJyOPZkI7NQFag5mze90)
 
 # LMS
 
