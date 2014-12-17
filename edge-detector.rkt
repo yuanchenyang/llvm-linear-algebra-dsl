@@ -4,12 +4,12 @@
 (require fast-math/frontend)
 (require fast-math/nodes)
 
-(define frame0-name "RasBodik.png")
+(define frame0-name "RasBodikBus.png")
 
 (require racket/draw)
 (require ffi/unsafe)
 
-(define (color->rgb color-bm)
+(define (color->rgb color-bm
   (define color-dc (new bitmap-dc% [bitmap color-bm]))
   (define-values (w h) (send color-dc get-size))
   (define width (exact-floor w))

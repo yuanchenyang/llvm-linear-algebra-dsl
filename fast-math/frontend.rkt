@@ -118,13 +118,17 @@ Special
              [out  (array-reference target out-index)]
              [kern (array-reference (get-mat-id b) kern-index)]
              [env (make-hash (list (cons (matrix-id b) b)))]
-             [node (for-block y pady (- ya pady) 1
-                              (for-block x padx (- xa padx) 1
-                                         (for-unroll env yy (- pady) (+ pady 1) 1
-                                                     (for-unroll env xx (- padx) (+ padx 1) 1
-                                                                 (list (assign out (add out (mul in kern))))))
-                                         (list pragma-ignore-loop-deps))
-                              (list pragma-ignore-loop-deps))])
+             [node (for-block
+                    y pady (- ya pady) 1
+                    (for-block
+                     x padx (- xa padx) 1
+                     (for-unroll
+                      env yy (- pady) (+ pady 1) 1
+                      (for-unroll
+                       env xx (- padx) (+ padx 1) 1
+                       (list (assign out (add out (mul in kern))))))
+                     (list pragma-ignore-loop-deps))
+                    (list pragma-ignore-loop-deps))])
         (matrix-block ya xa (append
                              (get-stmts a)
                              (list (allocate target mat ya xa))
