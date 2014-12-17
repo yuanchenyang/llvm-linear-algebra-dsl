@@ -6,7 +6,7 @@ CS164 Final Project
 * [Design Document](https://docs.google.com/document/d/1jxXGokp4xRlaZ8CKpWOpg-vOyd2hZooCkJ8mj0_cFmw)
 * [Presentation Slides](https://docs.google.com/presentation/d/1R167b4CC90N_FAhNEubsBVET6piK1DK2_JPPSHtrwh0)
 * [Poster](https://docs.google.com/presentation/d/1nBllOTOpP18xrpa_EW7FfPJBJyOPZkI7NQFag5mze90)
-* [Demo](https://drive.google.com/file/d/0Bwt9urKqYGqJWE51azlsUkp2REU/view?usp=sharing)
+* [Demo screencast](https://drive.google.com/file/d/0Bwt9urKqYGqJWE51azlsUkp2REU/view?usp=sharing)
 
 # racket-llvm (OSX)
 
